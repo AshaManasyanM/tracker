@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 import { useTournament } from "../state/TournamentContext";
 import { FinalResultsModal } from "./FinalResultsModal";
 import { clearTournament, saveTournament } from "../lib/storage";
+import { isSupabaseConfigured } from "../lib/supabaseClient";
+import { saveLocalScratchAsCloudTournament } from "../lib/tournamentDb";
 import type { Tournament } from "../types/tournament";
 import { STORAGE_KEY } from "../types/tournament";
 import { forkEmptyTournamentKeepId } from "../lib/tournamentDefaults";
@@ -19,12 +21,14 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 export function HeaderBar() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { tournament, dispatch, saveStatus, persistMode } = useTournament();
   const [nameDraft, setNameDraft] = useState(tournament.name);
   const fileRef = useRef<HTMLInputElement>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [finalOpen, setFinalOpen] = useState(false);
+  const [cloudCopyBusy, setCloudCopyBusy] = useState(false);
 
   useEffect(() => {
     setNameDraft(tournament.name);
@@ -65,6 +69,19 @@ export function HeaderBar() {
       }
     } catch {
       alert("Could not import that JSON file.");
+    }
+  };
+
+  const onSaveCopyToCloud = async () => {
+    if (!user || !isSupabaseConfigured) return;
+    setCloudCopyBusy(true);
+    try {
+      const id = await saveLocalScratchAsCloudTournament(tournament);
+      navigate(`/t/${id}`);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : "Could not save a copy to your account.");
+    } finally {
+      setCloudCopyBusy(false);
     }
   };
 
@@ -144,6 +161,17 @@ export function HeaderBar() {
           >
             Export JSON
           </button>
+          {persistMode === "local" && user && isSupabaseConfigured && (
+            <button
+              type="button"
+              disabled={cloudCopyBusy}
+              className="rounded-lg border border-accent/35 bg-accent/10 px-3 py-2 text-sm font-medium text-accent-glow hover:bg-accent/20 disabled:opacity-50"
+              title="Upload this draft to your account so you can open it on another device"
+              onClick={() => void onSaveCopyToCloud()}
+            >
+              {cloudCopyBusy ? "Saving…" : "Save copy to account"}
+            </button>
+          )}
           <button
             type="button"
             className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-sm text-slate-200 hover:border-accent/30 hover:text-white"

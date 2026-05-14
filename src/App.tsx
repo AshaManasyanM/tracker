@@ -36,6 +36,18 @@ export default function App() {
   return (
     <div className="flex min-h-full flex-col">
       <HeaderBar />
+      {persistMode === "local" && (
+        <div
+          role="note"
+          className="border-b border-amber-500/25 bg-amber-500/5 px-3 py-2 text-center text-[11px] leading-snug text-amber-100/90 sm:text-xs"
+        >
+          <strong className="text-amber-50">This browser only:</strong> this draft is stored in{" "}
+          <code className="rounded bg-black/20 px-1 text-amber-100/95">localStorage</code> for this exact site address (
+          <code className="rounded bg-black/20 px-1">localhost</code>, a Wi‑Fi IP, and your deployed URL each have
+          separate data). Signing in on your phone will not show this machine&apos;s draft unless you use{" "}
+          <strong>Export JSON</strong> or <strong>Save copy to account</strong> in the header.
+        </div>
+      )}
       <div className="border-b border-line bg-canvas-raised/80 backdrop-blur">
         <div className="mx-auto flex max-w-[1600px] flex-wrap gap-1 px-3 py-2 sm:px-4">
           {tabs.map((t) => (

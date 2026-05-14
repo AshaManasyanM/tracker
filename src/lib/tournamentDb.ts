@@ -97,3 +97,22 @@ export async function deleteTournamentRow(id: string): Promise<void> {
   const { error } = await sb.from("tournaments").delete().eq("id", id);
   if (error) throw error;
 }
+
+/** Creates a new cloud tournament row, then overwrites it with the current local workspace (for cross-device use). */
+export async function saveLocalScratchAsCloudTournament(local: Tournament): Promise<string> {
+  const id = await createTournamentForUser();
+  const matches = ensureAllMatchesShape(local.matches, local.teams);
+  const activeMatchId =
+    local.activeMatchId && matches.some((m) => m.id === local.activeMatchId)
+      ? local.activeMatchId
+      : matches[0]?.id ?? null;
+  const merged: Tournament = {
+    ...local,
+    id,
+    matches,
+    activeMatchId,
+    updatedAt: Date.now(),
+  };
+  await saveTournamentRow(merged);
+  return id;
+}

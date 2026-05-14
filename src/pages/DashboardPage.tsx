@@ -60,7 +60,8 @@ export function DashboardPage() {
           <code className="text-accent">VITE_SUPABASE_ANON_KEY</code> to a{" "}
           <code className="text-slate-500">.env</code> file, run the SQL in{" "}
           <code className="text-slate-500">supabase/migrations/001_tournaments.sql</code> and{" "}
-          <code className="text-slate-500">002_users.sql</code> in your Supabase project, then restart{" "}
+          <code className="text-slate-500">002_users.sql</code>, and{" "}
+          <code className="text-slate-500">003_users_created_at_from_auth.sql</code> in your Supabase project, then restart{" "}
           <code className="text-slate-500">npm run dev</code>.
         </p>
         <p className="mt-6 text-xs text-slate-600">
