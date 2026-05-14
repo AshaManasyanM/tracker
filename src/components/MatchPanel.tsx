@@ -15,7 +15,7 @@ export function MatchPanel() {
         <div>
           <h2 className="text-base font-semibold text-slate-100">Matches</h2>
           <p className="text-xs text-slate-500">
-            Unlimited rounds — each stores per-team placement, kills, and sat-out state.
+            Unlimited rounds — placements are unique per lobby (no two squads share a place); each squad has placement and elims.
           </p>
         </div>
         <button

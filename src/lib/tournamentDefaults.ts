@@ -30,6 +30,12 @@ export function createEmptyTournament(name: string): Tournament {
   };
 }
 
+/** Same as a fresh tournament but keeps the row id (cloud save / reset scores). */
+export function forkEmptyTournamentKeepId(id: string, displayName: string): Tournament {
+  const t = createEmptyTournament(displayName);
+  return { ...t, id };
+}
+
 export function appendMatch(teams: Team[], matches: Match[]): Match {
   const nextOrder =
     matches.length === 0 ? 0 : Math.max(...matches.map((m) => m.order)) + 1;

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useAuth } from "../state/AuthContext";
 import { useTournament } from "../state/TournamentContext";
 import { FinalResultsModal } from "./FinalResultsModal";
 import { clearTournament, saveTournament } from "../lib/storage";
 import type { Tournament } from "../types/tournament";
 import { STORAGE_KEY } from "../types/tournament";
+import { forkEmptyTournamentKeepId } from "../lib/tournamentDefaults";
 
 function downloadJson(filename: string, data: unknown) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -16,7 +19,8 @@ function downloadJson(filename: string, data: unknown) {
 }
 
 export function HeaderBar() {
-  const { tournament, dispatch, saveStatus } = useTournament();
+  const { user } = useAuth();
+  const { tournament, dispatch, saveStatus, persistMode } = useTournament();
   const [nameDraft, setNameDraft] = useState(tournament.name);
   const fileRef = useRef<HTMLInputElement>(null);
   const [flash, setFlash] = useState<string | null>(null);
@@ -48,11 +52,17 @@ export function HeaderBar() {
       const text = await file.text();
       const data = JSON.parse(text) as Tournament;
       if (!data?.teams || !data?.matches) throw new Error("Invalid file");
-      saveTournament({
+      const merged: Tournament = {
         ...data,
+        id: tournament.id,
         updatedAt: Date.now(),
-      });
-      window.location.reload();
+      };
+      if (persistMode === "remote") {
+        dispatch({ type: "hydrate", tournament: merged });
+      } else {
+        saveTournament(merged);
+        window.location.reload();
+      }
     } catch {
       alert("Could not import that JSON file.");
     }
@@ -62,11 +72,26 @@ export function HeaderBar() {
     <header className="border-b border-line bg-canvas-raised/90 backdrop-blur">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <div className="flex items-baseline gap-2">
+          <div className="flex flex-wrap items-baseline gap-2">
             <h1 className="truncate text-lg font-semibold tracking-tight text-slate-50 sm:text-xl">
               Scrim Command
             </h1>
             <span className="hidden text-xs text-slate-500 sm:inline">PUBG Mobile admin</span>
+            {persistMode === "remote" ? (
+              <Link
+                to="/"
+                className="text-xs font-medium text-accent hover:text-accent-glow hover:underline"
+              >
+                My tournaments
+              </Link>
+            ) : user ? (
+              <Link
+                to="/"
+                className="text-xs font-medium text-accent hover:text-accent-glow hover:underline"
+              >
+                Cloud tournaments
+              </Link>
+            ) : null}
           </div>
           <label className="flex max-w-xl items-center gap-2 text-sm text-slate-400">
             <span className="shrink-0">Tournament</span>
@@ -103,7 +128,7 @@ export function HeaderBar() {
                   ? "border-line text-slate-400"
                   : "border-accent/25 text-accent"
             }`}
-            title={`Browser key: ${STORAGE_KEY}`}
+            title={persistMode === "remote" ? "Cloud save" : `Browser key: ${STORAGE_KEY}`}
           >
             {statusLabel}
           </span>
@@ -141,6 +166,19 @@ export function HeaderBar() {
             type="button"
             className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger hover:bg-danger/20"
             onClick={() => {
+              if (persistMode === "remote") {
+                if (
+                  !confirm(
+                    "Clear all teams, matches, and scores for this tournament? The room stays open — this cannot be undone.",
+                  )
+                )
+                  return;
+                dispatch({
+                  type: "hydrate",
+                  tournament: forkEmptyTournamentKeepId(tournament.id, tournament.name),
+                });
+                return;
+              }
               if (
                 !confirm(
                   "Reset everything in this browser? This clears saved progress after reload.",

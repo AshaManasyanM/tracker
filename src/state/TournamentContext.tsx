@@ -14,11 +14,17 @@ import type { MatchTeamResult, Team, Tournament } from "../types/tournament";
 import { MAX_TEAMS } from "../types/tournament";
 import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
+import { describeSupabaseFetchError } from "../lib/supabaseErrors";
+import { saveTournamentRow, fetchTournamentById } from "../lib/tournamentDb";
 import {
   appendMatch,
   createEmptyTournament,
   ensureAllMatchesShape,
 } from "../lib/tournamentDefaults";
+import {
+  applyExclusivePlacement,
+  dedupePlacementsByTeamListOrder,
+} from "../lib/matchPlacementUnique";
 import { MAX_PLAYERS_PER_TEAM, normalizeMatchTeamResult } from "../lib/matchResultKills";
 import {
   distributeKillsEvenly,
@@ -47,12 +53,26 @@ export type TournamentAction =
       patch: Partial<MatchTeamResult>;
     }
   | { type: "setMatchPlayerKills"; matchId: string; teamId: string; playerId: string; kills: number }
-  | { type: "importOcrMatchSnapshot"; matchId: string; rows: OcrImportRow[] };
+  | { type: "importOcrMatchSnapshot"; matchId: string; rows: OcrImportRow[] }
+  | { type: "hydrate"; tournament: Tournament };
 
 function reducer(state: Tournament, action: TournamentAction): Tournament {
   const touch = (t: Tournament): Tournament => ({ ...t, updatedAt: Date.now() });
 
   switch (action.type) {
+    case "hydrate": {
+      const matches = ensureAllMatchesShape(action.tournament.matches, action.tournament.teams);
+      const activeMatchId =
+        action.tournament.activeMatchId && matches.some((m) => m.id === action.tournament.activeMatchId)
+          ? action.tournament.activeMatchId
+          : matches[0]?.id ?? null;
+      return {
+        ...action.tournament,
+        matches,
+        activeMatchId,
+        updatedAt: Date.now(),
+      };
+    }
     case "renameTournament":
       return touch({ ...state, name: action.name });
     case "addTeam": {
@@ -202,9 +222,14 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         } else {
           next = normalizeMatchTeamResult(team, next);
         }
+        const placementPatched = action.patch.placement !== undefined;
+        const results =
+          placementPatched && next.placement !== null
+            ? applyExclusivePlacement(m.results, state.teams, action.teamId, next)
+            : { ...m.results, [action.teamId]: next };
         return {
           ...m,
-          results: { ...m.results, [action.teamId]: next },
+          results,
         };
       });
       return touch({ ...state, matches });
@@ -314,11 +339,14 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
             });
           }
         }
-        return { ...m, results };
+        const deduped = dedupePlacementsByTeamListOrder(results, teams);
+        return { ...m, results: deduped };
       });
 
       return touch({ ...state, teams, matches });
     }
+    default:
+      return state;
   }
 }
 
@@ -326,11 +354,12 @@ type Ctx = {
   tournament: Tournament;
   dispatch: Dispatch<TournamentAction>;
   saveStatus: "idle" | "saving" | "saved" | "error";
+  persistMode: "local" | "remote";
 };
 
 const TournamentContext = createContext<Ctx | null>(null);
 
-function getInitialState(): Tournament {
+function getInitialStateLocal(): Tournament {
   const loaded = loadTournament();
   if (loaded) {
     const matches = ensureAllMatchesShape(loaded.matches, loaded.teams);
@@ -347,35 +376,132 @@ function getInitialState(): Tournament {
   return createEmptyTournament("New scrim");
 }
 
-export function TournamentProvider({ children }: { children: ReactNode }) {
-  const [tournament, dispatch] = useReducer(reducer, undefined, getInitialState);
+function getInitialRemotePlaceholder(tournamentId: string): Tournament {
+  const t = createEmptyTournament("Loading…");
+  return { ...t, id: tournamentId };
+}
+
+export type TournamentPersist =
+  | { mode: "local" }
+  | { mode: "remote"; tournamentId: string };
+
+export function TournamentProvider({
+  children,
+  persist = { mode: "local" },
+}: {
+  children: ReactNode;
+  persist?: TournamentPersist;
+}) {
+  const persistRemote = persist.mode === "remote";
+  const remoteTournamentId = persistRemote ? persist.tournamentId : "";
+
+  const [tournament, dispatch] = useReducer(
+    reducer,
+    undefined,
+    persistRemote
+      ? () => getInitialRemotePlaceholder(remoteTournamentId)
+      : getInitialStateLocal,
+  );
+
   const [saveStatus, setSaveStatus] = useState<Ctx["saveStatus"]>("idle");
+  const [remoteReady, setRemoteReady] = useState(!persistRemote);
+  const [remoteLoadError, setRemoteLoadError] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const persist = useCallback((t: Tournament) => {
-    try {
-      saveTournament(t);
-      setSaveStatus("saved");
-    } catch {
-      setSaveStatus("error");
+  useEffect(() => {
+    if (!persistRemote) {
+      setRemoteReady(true);
+      setRemoteLoadError(null);
+      return;
     }
-  }, []);
+    let cancelled = false;
+    setRemoteReady(false);
+    setRemoteLoadError(null);
+    void (async () => {
+      try {
+        const t = await fetchTournamentById(remoteTournamentId);
+        if (cancelled) return;
+        if (t) dispatch({ type: "hydrate", tournament: t });
+        else setRemoteLoadError("This tournament could not be loaded or you do not have access.");
+      } catch (e) {
+        if (!cancelled) {
+          const msg = e instanceof Error ? e.message : "Load failed.";
+          setRemoteLoadError(describeSupabaseFetchError(msg));
+        }
+      } finally {
+        if (!cancelled) setRemoteReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [persistRemote, remoteTournamentId]);
+
+  const persistFn = useCallback(
+    async (t: Tournament) => {
+      if (persistRemote) {
+        try {
+          await saveTournamentRow(t);
+          setSaveStatus("saved");
+        } catch {
+          setSaveStatus("error");
+        }
+      } else {
+        try {
+          saveTournament(t);
+          setSaveStatus("saved");
+        } catch {
+          setSaveStatus("error");
+        }
+      }
+    },
+    [persistRemote],
+  );
 
   useEffect(() => {
+    if (persistRemote && !remoteReady) return;
+    if (persistRemote && remoteLoadError) return;
     setSaveStatus("saving");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(() => {
-      persist(tournament);
+      void persistFn(tournament);
     }, 350);
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [tournament, persist]);
+  }, [tournament, persistFn, persistRemote, remoteReady, remoteLoadError]);
 
   const value = useMemo(
-    () => ({ tournament, dispatch, saveStatus }),
-    [tournament, dispatch, saveStatus],
+    () => ({
+      tournament,
+      dispatch,
+      saveStatus,
+      persistMode: persistRemote ? "remote" as const : "local" as const,
+    }),
+    [tournament, dispatch, saveStatus, persistRemote],
   );
+
+  if (persistRemote && !remoteReady) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-2 text-sm text-slate-500">
+        Loading tournament…
+      </div>
+    );
+  }
+
+  if (persistRemote && remoteLoadError) {
+    return (
+      <div className="mx-auto max-w-md px-4 py-16 text-center">
+        <p className="text-sm text-danger">{remoteLoadError}</p>
+        <a
+          href="/"
+          className="mt-6 inline-block rounded-lg border border-accent/40 bg-accent/10 px-4 py-2 text-sm text-accent-glow hover:bg-accent/20"
+        >
+          Back to dashboard
+        </a>
+      </div>
+    );
+  }
 
   return (
     <TournamentContext.Provider value={value}>{children}</TournamentContext.Provider>

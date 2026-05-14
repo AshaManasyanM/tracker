@@ -18,13 +18,10 @@ export function MatchEntryGrid({ match }: { match: Match }) {
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
+        <table className="w-full min-w-[640px] border-collapse text-sm">
           <thead>
             <tr className="border-b border-line bg-canvas-raised/70 text-left text-xs uppercase tracking-wide text-slate-500">
               <th className="px-2 py-2 font-medium sm:px-3">Team</th>
-              <th className="w-20 px-2 py-2 font-medium sm:px-3" title="Did not play this lobby">
-                Out
-              </th>
               <th className="w-28 px-2 py-2 font-medium sm:px-3">Place</th>
               <th className="min-w-[140px] px-2 py-2 font-medium sm:px-3">Elims</th>
               <th className="w-32 px-2 py-2 text-right font-medium sm:px-3">Pts</th>
@@ -84,31 +81,16 @@ export function MatchEntryGrid({ match }: { match: Match }) {
                   </td>
                   <td className="px-2 py-1.5 align-top sm:px-3">
                     <input
-                      type="checkbox"
-                      aria-label={`${team.name} sat out`}
-                      checked={dnp}
-                      onChange={(e) => {
-                        const satOut = e.target.checked;
-                        dispatch({
-                          type: "setMatchResult",
-                          matchId: match.id,
-                          teamId: team.id,
-                          patch: satOut
-                            ? { placement: null, kills: 0 }
-                            : { placement: 16, kills: r.kills },
-                        });
-                      }}
-                      className="mt-1 h-4 w-4 accent-accent"
-                    />
-                  </td>
-                  <td className="px-2 py-1.5 align-top sm:px-3">
-                    <input
-                      disabled={dnp}
                       aria-label={`${team.name} placement`}
+                      title={
+                        dnp
+                          ? "Enter placement to count this lobby (clear to skip team for this round)"
+                          : undefined
+                      }
                       inputMode="numeric"
-                      className="w-full rounded-md border border-line bg-canvas px-2 py-1.5 font-mono tabular-nums text-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="w-full rounded-md border border-line bg-canvas px-2 py-1.5 font-mono tabular-nums text-slate-100"
                       value={dnp ? "" : String(r.placement ?? "")}
-                      placeholder="—"
+                      placeholder={dnp ? "Place" : "—"}
                       onChange={(e) => {
                         const raw = e.target.value.trim();
                         if (raw === "") {

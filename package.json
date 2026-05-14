@@ -9,17 +9,22 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "auth:create-user": "node --env-file=.env scripts/create-auth-user.mjs",
+    "auth:create-admin": "node --env-file=.env scripts/create-admin-user.mjs"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.105.4",
     "html2canvas": "^1.4.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "react-router-dom": "^7.15.0",
     "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "@types/react-router-dom": "^5.3.3",
     "@vitejs/plugin-react": "^4.4.1",
     "autoprefixer": "^10.4.21",
     "postcss": "^8.5.3",

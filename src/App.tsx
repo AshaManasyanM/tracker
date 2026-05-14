@@ -4,6 +4,7 @@ import { LiveConsole } from "./components/LiveConsole";
 import { TeamPanel } from "./components/TeamPanel";
 import { MatchPanel } from "./components/MatchPanel";
 import { RulesPanel } from "./components/RulesPanel";
+import { useTournament } from "./state/TournamentContext";
 
 type Tab = "live" | "teams" | "matches" | "rules";
 
@@ -15,6 +16,7 @@ const tabs: { id: Tab; label: string; hint: string }[] = [
 ];
 
 export default function App() {
+  const { persistMode } = useTournament();
   const [tab, setTab] = useState<Tab>("live");
   const body = useMemo(() => {
     switch (tab) {
@@ -55,8 +57,9 @@ export default function App() {
       </div>
       <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 py-4 sm:px-4">{body}</main>
       <footer className="border-t border-line py-3 text-center text-xs text-slate-500">
-        Scrim Command — local auto-save in this browser only. Export JSON from the header when you
-        need a backup.
+        {persistMode === "remote"
+          ? "Scrim Command — saved to your account. Export JSON from the header for a backup."
+          : "Scrim Command — local auto-save in this browser only. Export JSON from the header when you need a backup."}
       </footer>
     </div>
   );
