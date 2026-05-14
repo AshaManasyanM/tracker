@@ -1,0 +1,67 @@
+import { useMemo } from "react";
+import type { Match, Team } from "../types/tournament";
+import { computePlayerStandings, getMvp } from "../lib/playerStats";
+
+export function MvpStrip({ teams, matches }: { teams: Team[]; matches: Match[] }) {
+  const mvp = useMemo(() => getMvp(teams, matches), [teams, matches]);
+  if (!mvp) {
+    return (
+      <div className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-xs text-slate-500">
+        MVP unlocks once rosters have elim data (add players under Teams, then log kills per match).
+      </div>
+    );
+  }
+  return (
+    <div className="rounded-lg border border-accent/25 bg-accent/5 px-3 py-2 text-xs text-slate-200">
+      <span className="font-semibold text-accent-glow">MVP</span>{" "}
+      <span className="font-medium text-slate-100">{mvp.playerName}</span>
+      <span className="text-slate-500"> · {mvp.teamName}</span>
+      <span className="float-right font-mono tabular-nums text-accent">{mvp.totalKills} elims</span>
+    </div>
+  );
+}
+
+export function PlayerFraggerboard({ teams, matches }: { teams: Team[]; matches: Match[] }) {
+  const rows = useMemo(() => computePlayerStandings(teams, matches), [teams, matches]);
+  const hasRoster = teams.some((t) => (t.players?.length ?? 0) > 0);
+
+  if (!hasRoster) {
+    return (
+      <div className="rounded-xl border border-line bg-canvas-overlay p-3 text-xs text-slate-500">
+        Add players on the <span className="text-slate-400">Teams</span> tab to track per-player
+        elims and MVP.
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
+      <div className="flex items-center justify-between border-b border-line px-3 py-2">
+        <h2 className="text-sm font-semibold text-slate-100">Fraggerboard</h2>
+        <span className="text-xs text-slate-500">Per-player elims</span>
+      </div>
+      <div className="max-h-[280px] overflow-y-auto">
+        <table className="w-full border-collapse text-left text-xs">
+          <thead className="sticky top-0 z-[1] bg-canvas-raised/95 text-[10px] uppercase tracking-wide text-slate-500">
+            <tr>
+              <th className="px-2 py-1.5 font-medium">#</th>
+              <th className="px-2 py-1.5 font-medium">Player</th>
+              <th className="px-2 py-1.5 font-medium">Team</th>
+              <th className="px-2 py-1.5 text-right font-medium">K</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.playerId} className="border-t border-line/70 odd:bg-canvas/30">
+                <td className="px-2 py-1.5 font-mono text-slate-500">{r.rank}</td>
+                <td className="px-2 py-1.5 font-medium text-slate-100">{r.playerName}</td>
+                <td className="max-w-[120px] truncate px-2 py-1.5 text-slate-400">{r.teamName}</td>
+                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-accent">{r.totalKills}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
