@@ -90,14 +90,15 @@ export function HeaderBar() {
       <div className="mx-auto flex max-w-[1600px] flex-col gap-3 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex flex-wrap items-baseline gap-2">
+          {/* <h2 className="hidden sm:inline">PUBG Mobile admin</h2> */}
             <h1 className="truncate text-lg font-semibold tracking-tight text-slate-50 sm:text-xl">
               Scrim Command
             </h1>
-            <span className="hidden text-xs text-slate-500 sm:inline">PUBG Mobile admin</span>
+           
             {persistMode === "remote" ? (
               <Link
                 to="/"
-                className="text-xs font-medium text-accent hover:text-accent-glow hover:underline"
+                className="text-lg font-semibold tracking-tight sm:text-xl text-accent hover:text-accent-glow hover:underline"
               >
                 My tournaments
               </Link>
@@ -130,14 +131,7 @@ export function HeaderBar() {
           </label>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="rounded-lg border border-[#c9a227]/40 bg-gradient-to-b from-[#2a2312]/90 to-[#120f08] px-3 py-2 text-sm font-semibold text-[#f5e6b8] shadow-[0_0_20px_rgba(201,162,39,0.15)] hover:border-[#e8c547]/60 hover:from-[#3a3018] hover:to-[#1a150a]"
-            onClick={() => setFinalOpen(true)}
-          >
-            Final graphic
-          </button>
-          <span
+        <span
             className={`rounded-full border px-2.5 py-1 text-xs font-medium tabular-nums ${
               saveStatus === "error"
                 ? "border-danger/40 text-danger"
@@ -149,6 +143,14 @@ export function HeaderBar() {
           >
             {statusLabel}
           </span>
+          <button
+            type="button"
+            className="rounded-lg border border-[#c9a227]/40 bg-gradient-to-b from-[#2a2312]/90 to-[#120f08] px-3 py-2 text-sm font-semibold text-[#f5e6b8] shadow-[0_0_20px_rgba(201,162,39,0.15)] hover:border-[#e8c547]/60 hover:from-[#3a3018] hover:to-[#1a150a]"
+            onClick={() => setFinalOpen(true)}
+          >
+            Final graphic
+          </button>
+      
           <button
             type="button"
             className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-sm text-slate-200 hover:border-accent/30 hover:text-white"

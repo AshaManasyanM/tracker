@@ -10,7 +10,7 @@ export function LoginPage() {
 
   useEffect(() => {
     if (!isSupabaseConfigured || loading) return;
-    if (user) navigate("/local", { replace: true });
+    if (user) navigate("/", { replace: true });
   }, [user, loading, navigate]);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,7 +27,7 @@ export function LoginPage() {
         setError(err);
         return;
       }
-      navigate("/local", { replace: true });
+      navigate("/", { replace: true });
     } finally {
       setBusy(false);
     }
@@ -38,7 +38,8 @@ export function LoginPage() {
       <div className="w-full max-w-md rounded-2xl border border-line bg-canvas-overlay p-8 shadow-panel">
         <h1 className="text-center font-display text-2xl font-bold text-slate-100">Sign in</h1>
         <p className="mt-2 text-center text-sm text-slate-500">
-          After sign-in you&apos;ll open the live workspace to add teams, matches, and results.
+          After sign-in you&apos;ll see your saved tournaments first; open one or use the scratch pad
+          from there.
         </p>
         <div className="mt-6 space-y-4">
           <SupabaseSetupNotice />

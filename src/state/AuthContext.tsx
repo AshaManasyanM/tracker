@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { error } = await sb.auth.signUp({
         email: email.trim(),
         password,
-        options: { emailRedirectTo: `${window.location.origin}/local` },
+        options: { emailRedirectTo: `${window.location.origin}/` },
       });
       return { error: error ? describeSupabaseFetchError(error.message) : null };
     } catch (err) {

@@ -40,9 +40,12 @@ export type Match = {
 };
 
 export type Tournament = {
+  /** Row id — same as Supabase tournaments.id when saved to cloud */
   id: string;
   name: string;
+  /** Full squad list: logos (`logoDataUrl`), rosters (`players`), tags — persisted in DB json `data` */
   teams: Team[];
+  /** All rounds; each `results[teamId]` holds placement, kills, and optional `playerKills` per roster member */
   matches: Match[];
   /** Currently focused match in admin UI */
   activeMatchId: string | null;

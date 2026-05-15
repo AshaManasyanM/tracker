@@ -1,6 +1,7 @@
 import type { Tournament } from "../types/tournament";
 import { getSupabase } from "./supabaseClient";
 import { createEmptyTournament, ensureAllMatchesShape } from "./tournamentDefaults";
+import { tournamentSnapshotForDatabase } from "./tournamentSnapshot";
 
 function normalizeLoaded(rowId: string, raw: unknown): Tournament | null {
   if (!raw || typeof raw !== "object") return null;
@@ -52,7 +53,7 @@ export async function saveTournamentRow(t: Tournament): Promise<void> {
     .from("tournaments")
     .update({
       name: t.name,
-      data: { ...t, id: t.id },
+      data: tournamentSnapshotForDatabase({ ...t, id: t.id }),
       updated_at: new Date().toISOString(),
     })
     .eq("id", t.id);
@@ -85,7 +86,7 @@ export async function createTournamentForUser(): Promise<string> {
     id,
     user_id: user.id,
     name: full.name,
-    data: full,
+    data: tournamentSnapshotForDatabase(full),
   });
   if (error) throw error;
   return id;
