@@ -2,12 +2,11 @@ import { useCallback, useId, useState } from "react";
 import { useTournament } from "../state/TournamentContext";
 import {
   buildOcrImportRows,
-  countOcrNewSquadsToCreate,
   parseLeaderboardFromOcrText,
   type ParseLeaderboardResult,
 } from "../lib/ocrMatchImport";
 import { recognizeMatchScreenshot } from "../lib/matchScreenshotOcr";
-import { MAX_TEAMS, type Match } from "../types/tournament";
+import type { Match } from "../types/tournament";
 
 export function MatchScreenshotImport({ match }: { match: Match }) {
   const { tournament, dispatch } = useTournament();
@@ -70,15 +69,6 @@ export function MatchScreenshotImport({ match }: { match: Match }) {
     if (!parsed) return;
     if (parsed.matched.length === 0 && parsed.newTeams.length === 0) return;
 
-    const needCreate = countOcrNewSquadsToCreate(parsed, tournament.teams);
-    const slotsLeft = MAX_TEAMS - tournament.teams.length;
-    if (needCreate > slotsLeft) {
-      setError(
-        `This import would add ${needCreate} new squads but only ${slotsLeft} slot${slotsLeft === 1 ? "" : "s"} remain (max ${MAX_TEAMS}). Remove teams or rows, then try again.`,
-      );
-      return;
-    }
-
     dispatch({
       type: "importOcrMatchSnapshot",
       matchId: match.id,
@@ -95,7 +85,7 @@ export function MatchScreenshotImport({ match }: { match: Match }) {
         <span className="font-mono text-slate-500">IGN — 5 уничтожений</span> (English “kills”
         works too). OCR uses English + Russian. If that layout is not detected, a simpler
         one-line-per-team mode is used. New squads from the board are still created when names do
-        not match your roster (up to {MAX_TEAMS} total).
+        not match your roster.
       </p>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">

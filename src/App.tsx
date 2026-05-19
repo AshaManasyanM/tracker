@@ -10,7 +10,7 @@ type Tab = "live" | "teams" | "matches" | "rules";
 
 const tabs: { id: Tab; label: string; hint: string }[] = [
   { id: "live", label: "Live console", hint: "Enter results and watch standings update" },
-  { id: "teams", label: "Teams", hint: `Up to 20 squads — roster fields you can extend later` },
+  { id: "teams", label: "Teams", hint: "Squads, logos, and rosters — add as many as you need" },
   { id: "matches", label: "Matches", hint: "Unlimited rounds — rename, add, remove" },
   { id: "rules", label: "Scoring", hint: "PMGC-style table used for placement points" },
 ];

@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from "react";
 import type { MatchTeamResult, Team, Tournament } from "../types/tournament";
-import { MAX_TEAMS } from "../types/tournament";
 import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
@@ -76,7 +75,6 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     case "renameTournament":
       return touch({ ...state, name: action.name });
     case "addTeam": {
-      if (state.teams.length >= MAX_TEAMS) return state;
       const team: Team = {
         id: newId("team"),
         name: action.name.trim() || `Team ${state.teams.length + 1}`,
@@ -271,7 +269,6 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
           createdIdByNorm.set(norm, existing.id);
           continue;
         }
-        if (teams.length >= MAX_TEAMS) break;
 
         const sample = action.rows.find(
           (r): r is Extract<OcrImportRow, { kind: "new" }> =>

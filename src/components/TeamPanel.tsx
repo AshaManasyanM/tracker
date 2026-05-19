@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTournament } from "../state/TournamentContext";
 import type { Player, Team } from "../types/tournament";
-import { MAX_TEAMS } from "../types/tournament";
 import { MAX_PLAYERS_PER_TEAM } from "../lib/matchResultKills";
 import { processTeamLogoFile } from "../lib/processTeamLogo";
 import { TeamAvatar } from "./TeamAvatar";
@@ -10,9 +9,19 @@ export function TeamPanel() {
   const { tournament, dispatch } = useTournament();
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
+  const [teamSearch, setTeamSearch] = useState("");
+
+  const filteredTeams = useMemo(() => {
+    const q = teamSearch.trim().toLowerCase();
+    if (!q) return tournament.teams;
+    return tournament.teams.filter(
+      (t) =>
+        t.name.toLowerCase().includes(q) ||
+        (t.tag?.toLowerCase().includes(q) ?? false),
+    );
+  }, [tournament.teams, teamSearch]);
 
   const add = () => {
-    if (tournament.teams.length >= MAX_TEAMS) return;
     dispatch({ type: "addTeam", name: name || `Squad ${tournament.teams.length + 1}`, tag });
     setName("");
     setTag("");
@@ -51,16 +60,12 @@ export function TeamPanel() {
           </label>
           <button
             type="button"
-            disabled={tournament.teams.length >= MAX_TEAMS}
             onClick={add}
             className="rounded-md border border-accent/35 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-glow hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Add
           </button>
         </div>
-        <p className="mt-3 text-xs text-slate-500">
-          {tournament.teams.length}/{MAX_TEAMS} teams
-        </p>
       </section>
 
       <section className="rounded-xl border border-line bg-canvas-overlay p-4 shadow-panel">
@@ -68,12 +73,31 @@ export function TeamPanel() {
         <p className="mt-1 text-xs text-slate-500">
           Order controls the Live console grid — put active squads at the top for faster typing.
         </p>
+        <label className="mt-3 block text-xs text-slate-400">
+          <span className="sr-only">Search teams</span>
+          <input
+            type="search"
+            value={teamSearch}
+            onChange={(e) => setTeamSearch(e.target.value)}
+            placeholder="Search teams…"
+            className="w-full rounded-md border border-line bg-canvas px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-600"
+          />
+        </label>
         <ul className="mt-3 rounded-lg border border-line bg-canvas">
           {tournament.teams.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-slate-500">No teams yet.</li>
           )}
-          {tournament.teams.map((t, idx) => (
-            <TeamRow key={t.id} team={t} index={idx} />
+          {tournament.teams.length > 0 && filteredTeams.length === 0 && (
+            <li className="px-3 py-6 text-center text-sm text-slate-500">
+              No teams match &ldquo;{teamSearch.trim()}&rdquo;.
+            </li>
+          )}
+          {filteredTeams.map((t) => (
+            <TeamRow
+              key={t.id}
+              team={t}
+              index={tournament.teams.findIndex((x) => x.id === t.id)}
+            />
           ))}
         </ul>
       </section>
@@ -121,10 +145,10 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
   };
 
   return (
-    <li className="flex flex-col gap-3 border-b border-line/60 px-3 py-3 last:border-b-0">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-1 gap-3">
-          <div className="flex shrink-0 flex-col items-center gap-1">
+    <li className="flex flex-col gap-3 border-b border-line/60 py-3 pl-4 pr-3 last:border-b-0 sm:pl-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <div className="flex shrink-0 flex-col items-start gap-1">
             <TeamAvatar team={team} size="lg" />
             <input
               ref={fileRef}

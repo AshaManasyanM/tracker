@@ -106,9 +106,9 @@ export function FinalResultsModal({
             const url = URL.createObjectURL(blob);
             const a = document.createElement("a");
             const stamp = new Date().toISOString().slice(0, 10);
-            const base = slugify(tournament.name) || "final_results";
+            const base = slugify(tournament.name) || "group_stage_results";
             a.href = url;
-            a.download = `${base}_final_results_${stamp}.png`;
+            a.download = `${base}_group_stage_results_${stamp}.png`;
             a.click();
             URL.revokeObjectURL(url);
             resolve();
@@ -133,7 +133,7 @@ export function FinalResultsModal({
       className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
-      aria-label="Final results graphic"
+      aria-label="Group stage results graphic"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -142,7 +142,7 @@ export function FinalResultsModal({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-bold tracking-wide text-[#f0dc93]">
-              Final results graphic
+              Group stage results graphic
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
               1920px wide · two-column survival-style board · PNG height grows with roster size.

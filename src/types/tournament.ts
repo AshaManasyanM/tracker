@@ -53,6 +53,4 @@ export type Tournament = {
   updatedAt: number;
 };
 
-export const MAX_TEAMS = 20;
-
 export const STORAGE_KEY = "pubgm-scrim-command.tournament.v1";

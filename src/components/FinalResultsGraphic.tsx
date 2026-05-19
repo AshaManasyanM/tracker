@@ -38,12 +38,12 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
             className="border-b border-white/15 bg-black/40 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-[#e8c547]"
             style={{ fontFamily: FONT_DISPLAY }}
           >
-            <th className={`w-14 ${rowPad} text-center`}>#</th>
-            <th className={`${rowPad} px-2 text-left`}>Team</th>
-            <th className={`w-[4.5rem] ${rowPad} text-right`}>W</th>
-            <th className={`w-[4.5rem] ${rowPad} text-right`}>K</th>
-            <th className={`w-[4rem] ${rowPad} text-right`}>PL</th>
-            <th className={`w-[4.5rem] ${rowPad} pr-3 text-right`}>PTS</th>
+            <th className={`w-14 pl-4 pr-2 ${rowPad} text-center`}>#</th>
+            <th className={`pl-3 pr-2 ${rowPad} text-left`}>Team</th>
+            <th className={`w-[4.5rem] px-2 ${rowPad} text-center`}>WW</th>
+            <th className={`w-[4.5rem] px-2 ${rowPad} text-center`}>Elims</th>
+            <th className={`w-[5.5rem] px-2 ${rowPad} text-center`}>Place pts</th>
+            <th className={`w-[5.5rem] px-2 ${rowPad} text-center`}>Total pts</th>
           </tr>
         </thead>
         <tbody>
@@ -63,7 +63,7 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
                 key={r.team.id}
                 className={`border-b border-white/[0.06] bg-gradient-to-r ${rankAccent(r.rank)}`}
               >
-                <td className={`px-1 text-center align-middle ${rowPad}`}>
+                <td className={`pl-4 pr-2 text-center align-middle ${rowPad}`}>
                   <span
                     className={`font-display font-bold tabular-nums ${rankNum} ${rankLabelClass(r.rank)}`}
                     style={{ fontFamily: FONT_DISPLAY }}
@@ -71,7 +71,7 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
                     {r.rank}
                   </span>
                 </td>
-                <td className={`min-w-0 align-middle px-2 text-left ${rowPad}`}>
+                <td className={`min-w-0 align-middle pl-3 pr-2 text-left ${rowPad}`}>
                   <div className="flex min-w-0 items-center gap-3">
                     <TeamAvatar team={r.team} size={dense ? "md" : "lg"} />
                     <div
@@ -89,25 +89,25 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
                   </div>
                 </td>
                 <td
-                  className={`pr-1 text-right align-middle font-mono text-[#ffb84d] ${rowPad} ${statSize}`}
+                  className={`px-2 text-center align-middle font-mono text-[#ffb84d] ${rowPad} ${statSize}`}
                   style={{ fontFamily: FONT_BOARD }}
                 >
                   {r.chickenDinners}
                 </td>
                 <td
-                  className={`pr-1 text-right align-middle font-mono font-semibold text-slate-100 ${rowPad} ${statSize}`}
+                  className={`px-2 text-center align-middle font-mono font-semibold text-slate-100 ${rowPad} ${statSize}`}
                   style={{ fontFamily: FONT_BOARD }}
                 >
                   {r.totalKills}
                 </td>
                 <td
-                  className={`pr-1 text-right align-middle font-mono text-slate-300 ${rowPad} ${statSize}`}
+                  className={`px-2 text-center align-middle font-mono text-slate-300 ${rowPad} ${statSize}`}
                   style={{ fontFamily: FONT_BOARD }}
                 >
                   {r.totalPlacementPoints}
                 </td>
                 <td
-                  className={`pr-3 text-right align-middle font-mono font-bold text-[#5cf0d8] ${rowPad} ${statSize}`}
+                  className={`px-2 text-center align-middle font-mono font-bold text-[#5cf0d8] ${rowPad} ${statSize}`}
                   style={{ fontFamily: FONT_BOARD }}
                 >
                   {r.totalPoints}
@@ -173,7 +173,7 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
                     "0 1px 0 #7a5a12, 0 4px 22px rgba(201,162,39,0.42), 0 0 36px rgba(255,236,180,0.18)",
                 }}
               >
-                FINAL RESULTS
+                GROUP STAGE RESULTS
               </h1>
               <p
                 className="mt-3 max-w-[1100px] text-[1.85rem] font-semibold leading-snug text-slate-100"

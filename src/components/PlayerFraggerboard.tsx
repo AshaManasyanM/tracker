@@ -44,19 +44,19 @@ export function PlayerFraggerboard({ teams, matches }: { teams: Team[]; matches:
         <table className="w-full border-collapse text-left text-xs">
           <thead className="sticky top-0 z-[1] bg-canvas-raised/95 text-[10px] uppercase tracking-wide text-slate-500">
             <tr>
-              <th className="px-2 py-1.5 font-medium">#</th>
-              <th className="px-2 py-1.5 font-medium">Player</th>
-              <th className="px-2 py-1.5 font-medium">Team</th>
-              <th className="px-2 py-1.5 text-right font-medium">K</th>
+              <th className="py-1.5 pl-4 pr-2 text-center font-medium">#</th>
+              <th className="py-1.5 pl-3 pr-2 text-left font-medium">Player</th>
+              <th className="py-1.5 pl-3 pr-2 text-left font-medium">Team</th>
+              <th className="py-1.5 px-2 text-center font-medium">Elims</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.playerId} className="border-t border-line/70 odd:bg-canvas/30">
-                <td className="px-2 py-1.5 font-mono text-slate-500">{r.rank}</td>
-                <td className="px-2 py-1.5 font-medium text-slate-100">{r.playerName}</td>
-                <td className="max-w-[120px] truncate px-2 py-1.5 text-slate-400">{r.teamName}</td>
-                <td className="px-2 py-1.5 text-right font-mono tabular-nums text-accent">{r.totalKills}</td>
+                <td className="align-middle py-1.5 pl-4 pr-2 text-center font-mono text-slate-500">{r.rank}</td>
+                <td className="align-middle py-1.5 pl-3 pr-2 text-left font-medium text-slate-100">{r.playerName}</td>
+                <td className="max-w-[120px] truncate align-middle py-1.5 pl-3 pr-2 text-left text-slate-400">{r.teamName}</td>
+                <td className="align-middle py-1.5 px-2 text-center font-mono tabular-nums text-accent">{r.totalKills}</td>
               </tr>
             ))}
           </tbody>
