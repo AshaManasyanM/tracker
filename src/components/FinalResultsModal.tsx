@@ -130,7 +130,7 @@ export function FinalResultsModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+      className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 p-0 backdrop-blur-md sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Group stage results graphic"
@@ -138,7 +138,7 @@ export function FinalResultsModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[94vh] w-full max-w-[min(1240px,100vw)] flex-col gap-4 rounded-2xl border border-[#c9a227]/35 bg-[#070b14] p-5 shadow-[0_0_80px_rgba(0,0,0,0.65)]">
+      <div className="flex max-h-[100dvh] w-full max-w-[min(1240px,100vw)] flex-col gap-3 overflow-y-auto rounded-t-2xl border border-[#c9a227]/35 bg-[#070b14] p-3 shadow-[0_0_80px_rgba(0,0,0,0.65)] sm:max-h-[94vh] sm:gap-4 sm:rounded-2xl sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-bold tracking-wide text-[#f0dc93]">
@@ -167,9 +167,10 @@ export function FinalResultsModal({
           </div>
         </div>
 
-        <div className="mx-auto overflow-hidden rounded-xl border border-white/10 shadow-2xl ring-1 ring-[#c9a227]/20">
+        <div className="w-full overflow-hidden rounded-xl border border-white/10 shadow-2xl ring-1 ring-[#c9a227]/20">
+          <div className="w-full overflow-x-auto overscroll-x-contain bg-black py-1 [-webkit-overflow-scrolling:touch]">
           <div
-            className="mx-auto max-h-[min(82vh,900px)] overflow-auto bg-black py-1"
+            className="mx-auto max-h-[min(70dvh,900px)] overflow-y-auto sm:max-h-[min(82vh,900px)]"
             style={{
               width: EXPORT_W * PREVIEW_SCALE + 8,
             }}
@@ -193,6 +194,7 @@ export function FinalResultsModal({
                 <FinalResultsGraphic {...graphicProps} />
               </div>
             </div>
+          </div>
           </div>
         </div>
 

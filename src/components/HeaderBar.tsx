@@ -130,7 +130,7 @@ export function HeaderBar() {
             />
           </label>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
         <span
             className={`rounded-full border px-2.5 py-1 text-xs font-medium tabular-nums ${
               saveStatus === "error"
@@ -148,7 +148,8 @@ export function HeaderBar() {
             className="rounded-lg border border-[#c9a227]/40 bg-gradient-to-b from-[#2a2312]/90 to-[#120f08] px-3 py-2 text-sm font-semibold text-[#f5e6b8] shadow-[0_0_20px_rgba(201,162,39,0.15)] hover:border-[#e8c547]/60 hover:from-[#3a3018] hover:to-[#1a150a]"
             onClick={() => setFinalOpen(true)}
           >
-            Group stage graphic
+            <span className="sm:hidden">Graphic</span>
+            <span className="hidden sm:inline">Group stage graphic</span>
           </button>
       
           <button
@@ -171,7 +172,12 @@ export function HeaderBar() {
               title="Upload this draft to your account so you can open it on another device"
               onClick={() => void onSaveCopyToCloud()}
             >
-              {cloudCopyBusy ? "Saving…" : "Save copy to account"}
+              {cloudCopyBusy ? "Saving…" : (
+                <>
+                  <span className="sm:hidden">Save to cloud</span>
+                  <span className="hidden sm:inline">Save copy to account</span>
+                </>
+              )}
             </button>
           )}
           <button

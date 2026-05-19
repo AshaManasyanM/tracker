@@ -8,11 +8,31 @@ import { useTournament } from "./state/TournamentContext";
 
 type Tab = "live" | "teams" | "matches" | "rules";
 
-const tabs: { id: Tab; label: string; hint: string }[] = [
-  { id: "live", label: "Live console", hint: "Enter results and watch standings update" },
-  { id: "teams", label: "Teams", hint: "Squads, logos, and rosters — add as many as you need" },
-  { id: "matches", label: "Matches", hint: "Unlimited rounds — rename, add, remove" },
-  { id: "rules", label: "Scoring", hint: "PMGC-style table used for placement points" },
+const tabs: { id: Tab; label: string; shortLabel: string; hint: string }[] = [
+  {
+    id: "live",
+    label: "Live console",
+    shortLabel: "Live",
+    hint: "Enter results and watch standings update",
+  },
+  {
+    id: "teams",
+    label: "Teams",
+    shortLabel: "Teams",
+    hint: "Squads, logos, and rosters — add as many as you need",
+  },
+  {
+    id: "matches",
+    label: "Matches",
+    shortLabel: "Matches",
+    hint: "Unlimited rounds — rename, add, remove",
+  },
+  {
+    id: "rules",
+    label: "Scoring",
+    shortLabel: "Scoring",
+    hint: "PMGC-style table used for placement points",
+  },
 ];
 
 export default function App() {
@@ -34,7 +54,7 @@ export default function App() {
   }, [tab]);
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-dvh min-w-0 flex-col">
       <HeaderBar />
       {persistMode === "local" && (
         <div
@@ -48,26 +68,34 @@ export default function App() {
           <strong>Export JSON</strong> or <strong>Save copy to account</strong> in the header.
         </div>
       )}
-      <div className="border-b border-line bg-canvas-raised/80 backdrop-blur">
-        <div className="mx-auto flex max-w-[1600px] flex-wrap gap-1 px-3 py-2 sm:px-4">
+      <nav
+        className="border-b border-line bg-canvas-raised/80 backdrop-blur"
+        aria-label="Tournament sections"
+      >
+        <div className="mx-auto max-w-[1600px] overflow-x-auto px-3 py-2 [-webkit-overflow-scrolling:touch] sm:px-4">
+          <div className="flex w-max min-w-full gap-1 sm:w-auto sm:flex-wrap">
           {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
               title={t.hint}
               onClick={() => setTab(t.id)}
-              className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+              className={`shrink-0 rounded-lg px-3 py-2 text-sm font-medium transition sm:shrink ${
                 tab === t.id
                   ? "bg-canvas-overlay text-accent-glow shadow-panel"
                   : "text-slate-400 hover:bg-canvas-overlay/60 hover:text-slate-200"
               }`}
             >
-              {t.label}
+              <span className="sm:hidden">{t.shortLabel}</span>
+              <span className="hidden sm:inline">{t.label}</span>
             </button>
           ))}
+          </div>
         </div>
-      </div>
-      <main className="mx-auto w-full max-w-[1600px] flex-1 px-3 py-4 sm:px-4">{body}</main>
+      </nav>
+      <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-3 py-3 pb-6 sm:px-4 sm:py-4">
+        {body}
+      </main>
       <footer className="border-t border-line py-3 text-center text-xs text-slate-500">
         {persistMode === "remote"
           ? "Scrim Command — saved to your account. Export JSON from the header for a backup."

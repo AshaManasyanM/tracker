@@ -12,11 +12,13 @@ export function MvpStrip({ teams, matches }: { teams: Team[]; matches: Match[] }
     );
   }
   return (
-    <div className="rounded-lg border border-accent/25 bg-accent/5 px-3 py-2 text-xs text-slate-200">
-      <span className="font-semibold text-accent-glow">MVP</span>{" "}
-      <span className="font-medium text-slate-100">{mvp.playerName}</span>
-      <span className="text-slate-500"> · {mvp.teamName}</span>
-      <span className="float-right font-mono tabular-nums text-accent">{mvp.totalKills} elims</span>
+    <div className="flex items-start justify-between gap-2 rounded-lg border border-accent/25 bg-accent/5 px-3 py-2 text-xs text-slate-200">
+      <p className="min-w-0">
+        <span className="font-semibold text-accent-glow">MVP</span>{" "}
+        <span className="font-medium text-slate-100">{mvp.playerName}</span>
+        <span className="text-slate-500"> · {mvp.teamName}</span>
+      </p>
+      <span className="shrink-0 font-mono tabular-nums text-accent">{mvp.totalKills} elims</span>
     </div>
   );
 }

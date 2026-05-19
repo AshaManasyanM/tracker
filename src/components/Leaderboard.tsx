@@ -28,8 +28,8 @@ export function Leaderboard({
         <h2 className="text-sm font-semibold text-slate-100">Live standings</h2>
         <span className="text-xs text-slate-500">{matches.length} matches</span>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+      <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
+        <table className="w-full min-w-[min(100%,380px)] border-collapse text-left text-sm sm:min-w-[520px]">
           <thead>
             <tr className="border-b border-line bg-canvas-raised/60 text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pl-4 pr-2 text-center font-medium sm:pl-5 sm:pr-3">#</th>

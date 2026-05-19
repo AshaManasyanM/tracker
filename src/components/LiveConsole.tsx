@@ -29,15 +29,15 @@ export function LiveConsole() {
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px]">
       <section className="flex min-w-0 flex-col gap-3">
-        <div className="flex flex-wrap items-end justify-between gap-2">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+          <div className="min-w-0">
             <h2 className="text-base font-semibold text-slate-100">Match entry</h2>
             <p className="text-xs text-slate-500">
               Tab through cells after each game — totals refresh instantly across every round.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex min-w-[140px] flex-1 items-center gap-2 text-xs text-slate-400 sm:max-w-[200px]">
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap sm:items-center">
+            <label className="flex w-full min-w-0 items-center gap-2 text-xs text-slate-400 sm:max-w-[200px]">
               <span className="sr-only">Search teams</span>
               <input
                 type="search"
@@ -47,14 +47,14 @@ export function LiveConsole() {
                 className="w-full rounded-md border border-line bg-canvas px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-600"
               />
             </label>
-            <label className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="hidden sm:inline">Active match</span>
+            <label className="flex w-full min-w-0 items-center gap-2 text-xs text-slate-400 sm:w-auto">
+              <span className="shrink-0 sm:inline">Match</span>
               <select
                 value={activeId ?? ""}
                 onChange={(e) =>
                   dispatch({ type: "setActiveMatch", matchId: e.target.value || null })
                 }
-                className="max-w-[220px] rounded-md border border-line bg-canvas px-2 py-1.5 text-sm text-slate-100"
+                className="min-w-0 flex-1 rounded-md border border-line bg-canvas px-2 py-1.5 text-sm text-slate-100 sm:max-w-[220px] sm:flex-none"
               >
                 {sortedMatches.map((m) => (
                   <option key={m.id} value={m.id}>
@@ -65,7 +65,7 @@ export function LiveConsole() {
             </label>
             <button
               type="button"
-              className="rounded-md border border-accent/35 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent-glow hover:bg-accent/15"
+              className="w-full shrink-0 rounded-md border border-accent/35 bg-accent/10 px-3 py-1.5 text-sm font-medium text-accent-glow hover:bg-accent/15 sm:w-auto"
               onClick={() => dispatch({ type: "addMatch" })}
             >
               + Match

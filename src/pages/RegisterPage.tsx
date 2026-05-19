@@ -38,8 +38,8 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center bg-canvas px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl border border-line bg-canvas-overlay p-8 shadow-panel">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-canvas px-4 py-8 sm:py-12">
+      <div className="w-full max-w-md rounded-2xl border border-line bg-canvas-overlay p-6 shadow-panel sm:p-8">
         <h1 className="text-center font-display text-2xl font-bold text-slate-100">Create account</h1>
         <p className="mt-2 text-center text-sm text-slate-500">
           Each account has its own tournaments and saved results.

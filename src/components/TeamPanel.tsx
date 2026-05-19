@@ -83,7 +83,7 @@ export function TeamPanel() {
             className="w-full rounded-md border border-line bg-canvas px-2 py-1.5 text-sm text-slate-100 placeholder:text-slate-600"
           />
         </label>
-        <ul className="mt-3 rounded-lg border border-line bg-canvas">
+        <ul className="mt-3 max-h-[min(60dvh,520px)] overflow-y-auto rounded-lg border border-line bg-canvas lg:max-h-none">
           {tournament.teams.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-slate-500">No teams yet.</li>
           )}
