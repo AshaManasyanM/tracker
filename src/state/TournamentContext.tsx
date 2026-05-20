@@ -15,9 +15,11 @@ import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
 import { saveTournamentRow, fetchTournamentById } from "../lib/tournamentDb";
+import { buildMatchLabelFromMeta } from "../lib/matchDisplay";
 import {
   appendMatch,
   createEmptyTournament,
+  emptyResultsForTeams,
   ensureAllMatchesShape,
 } from "../lib/tournamentDefaults";
 import {
@@ -41,9 +43,14 @@ export type TournamentAction =
   | { type: "removePlayer"; teamId: string; playerId: string }
   | { type: "removeTeam"; teamId: string }
   | { type: "reorderTeams"; teamIds: string[] }
-  | { type: "addMatch" }
+  | { type: "addMatch"; day?: number }
   | { type: "removeMatch"; matchId: string }
   | { type: "renameMatch"; matchId: string; label: string }
+  | {
+      type: "updateMatch";
+      matchId: string;
+      patch: { day?: number | null; map?: string };
+    }
   | { type: "setActiveMatch"; matchId: string | null }
   | {
       type: "setMatchResult";
@@ -53,6 +60,8 @@ export type TournamentAction =
     }
   | { type: "setMatchPlayerKills"; matchId: string; teamId: string; playerId: string; kills: number }
   | { type: "importOcrMatchSnapshot"; matchId: string; rows: OcrImportRow[] }
+  | { type: "clearAllScores" }
+  | { type: "clearMatchScores"; matchId: string }
   | { type: "hydrate"; tournament: Tournament };
 
 function reducer(state: Tournament, action: TournamentAction): Tournament {
@@ -174,7 +183,7 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       return touch({ ...state, teams });
     }
     case "addMatch": {
-      const m = appendMatch(state.teams, state.matches);
+      const m = appendMatch(state.teams, state.matches, { day: action.day });
       return touch({
         ...state,
         matches: [...state.matches, m],
@@ -196,8 +205,35 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       );
       return touch({ ...state, matches });
     }
+    case "updateMatch": {
+      const matches = state.matches.map((m) => {
+        if (m.id !== action.matchId) return m;
+        const day =
+          action.patch.day === null
+            ? undefined
+            : action.patch.day !== undefined
+              ? Math.max(1, Math.floor(action.patch.day))
+              : m.day;
+        const map = action.patch.map !== undefined ? action.patch.map.trim() : m.map;
+        const label = buildMatchLabelFromMeta(day, map, m.order);
+        return { ...m, day, map, label };
+      });
+      return touch({ ...state, matches });
+    }
     case "setActiveMatch":
       return touch({ ...state, activeMatchId: action.matchId });
+    case "clearAllScores": {
+      const empty = emptyResultsForTeams(state.teams);
+      const matches = state.matches.map((m) => ({ ...m, results: { ...empty } }));
+      return touch({ ...state, matches });
+    }
+    case "clearMatchScores": {
+      const empty = emptyResultsForTeams(state.teams);
+      const matches = state.matches.map((m) =>
+        m.id === action.matchId ? { ...m, results: { ...empty } } : m,
+      );
+      return touch({ ...state, matches });
+    }
     case "setMatchResult": {
       const matches = state.matches.map((m) => {
         if (m.id !== action.matchId) return m;

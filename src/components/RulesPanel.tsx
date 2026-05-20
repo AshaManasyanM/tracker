@@ -51,6 +51,11 @@ export function RulesPanel() {
         <span className="font-mono text-accent">{KILL_POINTS_PER_ELIMINATION}</span> point each,
         added on top of placement points every match.
       </p>
+      <p className="text-sm text-slate-400">
+        Standings ties: same <span className="text-slate-300">total pts</span> → higher{" "}
+        <span className="text-slate-300">place pts</span> ranks above; then elims, best single
+        finish, then WW count.
+      </p>
     </div>
   );
 }

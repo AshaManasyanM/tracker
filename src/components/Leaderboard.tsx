@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import type { Match, Team } from "../types/tournament";
-import { computeStandings } from "../lib/standings";
+import { computeStandings, formatStandingRank } from "../lib/standings";
 import { TeamAvatar } from "./TeamAvatar";
 
 export function Leaderboard({
@@ -29,11 +29,15 @@ export function Leaderboard({
         <span className="text-xs text-slate-500">{matches.length} matches</span>
       </div>
       <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
-        <table className="w-full min-w-[min(100%,380px)] border-collapse text-left text-sm sm:min-w-[520px]">
+        <table className="w-full min-w-[min(100%,400px)] border-collapse text-left text-sm sm:min-w-[540px]">
+          <colgroup>
+            <col className="w-12" />
+            <col className="min-w-[140px]" />
+          </colgroup>
           <thead>
             <tr className="border-b border-line bg-canvas-raised/60 text-xs uppercase tracking-wide text-slate-500">
               <th className="py-2 pl-4 pr-2 text-center font-medium sm:pl-5 sm:pr-3">#</th>
-              <th className="py-2 pl-3 pr-2 text-left font-medium sm:pl-4 sm:pr-3">Team</th>
+              <th className="min-w-[140px] py-2 pl-4 pr-3 text-left font-medium sm:pl-5 sm:pr-4">Team</th>
               <th className="py-2 px-2 text-center font-medium sm:px-3">Total pts</th>
               {!compact && (
                 <>
@@ -58,11 +62,11 @@ export function Leaderboard({
                 className="border-b border-line/70 odd:bg-canvas/40 hover:bg-canvas-raised/40"
               >
                 <td className="align-middle py-2 pl-4 pr-2 text-center font-mono text-xs text-slate-400 sm:pl-5 sm:pr-3 sm:text-sm">
-                  {r.rank}
+                  {formatStandingRank(r)}
                 </td>
-                <td className="align-middle py-2 pl-3 pr-2 sm:pl-4 sm:pr-3">
-                  <div className="flex min-w-0 items-center justify-start gap-2 text-left">
-                    <TeamAvatar team={r.team} size="sm" className="shrink-0" />
+                <td className="min-w-[140px] align-middle py-2 pl-4 pr-3 sm:pl-5 sm:pr-4">
+                  <div className="flex min-w-0 items-center justify-start gap-3 text-left">
+                    <TeamAvatar team={r.team} size="md" className="shrink-0" />
                     <div className="flex min-w-0 flex-col text-left">
                       <span className="truncate font-medium text-slate-100">{r.team.name}</span>
                       {r.team.tag && (

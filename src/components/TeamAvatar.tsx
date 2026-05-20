@@ -11,10 +11,13 @@ export function TeamAvatar({
   team,
   size = "md",
   className = "",
+  priority = false,
 }: {
   team: Team;
   size?: keyof typeof sizeClass;
   className?: string;
+  /** Eager load for PNG export (html2canvas on mobile). */
+  priority?: boolean;
 }) {
   const box = `shrink-0 overflow-hidden rounded-md border border-line bg-canvas-raised ${sizeClass[size]} ${className}`;
 
@@ -24,8 +27,9 @@ export function TeamAvatar({
         src={team.logoDataUrl}
         alt=""
         className={`${box} object-cover`}
-        loading="lazy"
-        decoding="async"
+        style={{ display: "block", verticalAlign: "middle" }}
+        loading={priority ? "eager" : "lazy"}
+        decoding={priority ? "sync" : "async"}
       />
     );
   }
@@ -33,7 +37,13 @@ export function TeamAvatar({
   const initial = team.name.trim().slice(0, 1).toUpperCase() || "?";
   return (
     <div
-      className={`${box} flex items-center justify-center font-semibold tabular-nums text-slate-400`}
+      className={`${box} font-semibold tabular-nums text-slate-400`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1,
+      }}
       aria-hidden
     >
       {initial}

@@ -1,5 +1,5 @@
 import { forwardRef } from "react";
-import type { TeamStanding } from "../lib/standings";
+import { formatStandingRank, type TeamStanding } from "../lib/standings";
 import { TeamAvatar } from "./TeamAvatar";
 
 export type FinalResultsGraphicProps = {
@@ -10,40 +10,154 @@ export type FinalResultsGraphicProps = {
 const FONT_BOARD = "'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Oswald', system-ui, sans-serif";
 
-function rankAccent(rank: number): string {
-  if (rank === 1) return "from-[#ffd54a]/35 via-[#c9a227]/12 to-transparent";
-  if (rank === 2) return "from-slate-200/25 via-slate-400/10 to-transparent";
-  if (rank === 3) return "from-amber-700/35 via-amber-900/10 to-transparent";
-  return "from-white/[0.06] to-transparent";
+/** Graphic table palette */
+const BG = "#070b14";
+const GOLD = "#E6C15A";
+const GOLD_RGB = "230, 193, 90";
+const TEXT_DIM = `rgba(${GOLD_RGB}, 0.45)`;
+
+const TABLE_PANEL_BG = `linear-gradient(165deg, rgba(${GOLD_RGB}, 0.1) 0%, ${BG} 35%, ${BG} 100%)`;
+const HEAD_TEXT = "rgba(220, 228, 240, 0.82)";
+
+/** Gold wash on dark base for teams with placement or points */
+const ROW_ACTIVE = `linear-gradient(90deg, rgba(${GOLD_RGB}, 0.22) 0%, rgba(${GOLD_RGB}, 0.08) 45%, ${BG} 100%)`;
+const ROW_ACTIVE_LEADER = `linear-gradient(90deg, rgba(${GOLD_RGB}, 0.34) 0%, rgba(${GOLD_RGB}, 0.14) 40%, ${BG} 100%)`;
+const ROW_EMPTY_EVEN = `linear-gradient(90deg, rgba(255,255,255,0.03) 0%, ${BG} 100%)`;
+const ROW_EMPTY_ODD = "#0c101c";
+
+function hasStandingsData(s: TeamStanding): boolean {
+  return s.matchesPlayed > 0 || s.totalPoints > 0;
 }
 
-function rankLabelClass(rank: number): string {
-  if (rank === 1) return "text-[#ffe9a8]";
-  if (rank === 2) return "text-slate-200";
-  if (rank === 3) return "text-amber-200/90";
-  return "text-slate-500";
+function rowBackground(s: TeamStanding, index: number): string {
+  if (!hasStandingsData(s)) {
+    return index % 2 === 0 ? ROW_EMPTY_EVEN : ROW_EMPTY_ODD;
+  }
+  return s.rank === 1 ? ROW_ACTIVE_LEADER : ROW_ACTIVE;
+}
+
+function rankColor(s: TeamStanding): string {
+  if (s.matchesPlayed === 0) return TEXT_DIM;
+  return GOLD;
+}
+
+/** Table-cell layout survives html2canvas on mobile; flex inside <td> often stacks misaligned. */
+function GraphicTeamCell({
+  team,
+  dense,
+  nameSize,
+}: {
+  team: TeamStanding["team"];
+  dense: boolean;
+  nameSize: string;
+}) {
+  const avatarPx = dense ? 44 : 52;
+  const nameGap = dense ? 36 : 48;
+  return (
+    <div
+      style={{
+        display: "table",
+        width: "100%",
+        tableLayout: "fixed",
+        borderCollapse: "collapse",
+      }}
+    >
+      <div style={{ display: "table-row" }}>
+        <div
+          style={{
+            display: "table-cell",
+            width: avatarPx,
+            verticalAlign: "middle",
+            paddingRight: nameGap,
+            lineHeight: 0,
+          }}
+        >
+          <TeamAvatar team={team} size={dense ? "md" : "lg"} priority />
+        </div>
+        <div
+          style={{
+            display: "table-cell",
+            verticalAlign: "middle",
+            lineHeight: 1.25,
+            paddingLeft: 12,
+          }}
+        >
+          <div
+            className={`font-semibold ${nameSize}`}
+            style={{
+              fontFamily: FONT_BOARD,
+              color: GOLD,
+              wordBreak: "break-word",
+              overflowWrap: "break-word",
+              letterSpacing: "0.01em",
+            }}
+          >
+            {team.name}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }) {
   const rowPad = dense ? "py-2" : "py-2.5";
+  const headPad = dense ? "py-3.5" : "py-4";
+  const headText = dense ? "text-sm" : "text-base";
   const nameSize = dense ? "text-lg" : "text-xl";
   const statSize = dense ? "text-lg" : "text-xl";
   const rankNum = dense ? "text-2xl" : "text-3xl";
+  const rowHeight = dense ? 52 : 60;
+  const cellMiddle = { verticalAlign: "middle" as const };
+  const statCell = { ...cellMiddle, whiteSpace: "nowrap" as const };
+  const headTh = {
+    fontFamily: FONT_DISPLAY,
+    color: HEAD_TEXT,
+    backgroundColor: BG,
+    whiteSpace: "nowrap" as const,
+    lineHeight: 1.1,
+  };
 
   return (
-    <div className="min-w-0 flex-1">
-      <table className="w-full table-fixed border-collapse text-left">
+    <div className="min-w-0 flex-1" style={{ lineHeight: "normal" }}>
+      <table
+        className="w-full border-collapse text-left"
+        style={{ tableLayout: "fixed", width: "100%" }}
+      >
+        <colgroup>
+          <col style={{ width: 56 }} />
+          <col />
+          <col style={{ width: 76 }} />
+          <col style={{ width: 76 }} />
+          <col style={{ width: 100 }} />
+          <col style={{ width: 100 }} />
+        </colgroup>
         <thead>
           <tr
-            className="border-b border-white/15 bg-black/40 font-display text-[10px] font-bold uppercase tracking-[0.2em] text-[#e8c547]"
-            style={{ fontFamily: FONT_DISPLAY }}
+            className={`border-b font-display font-bold uppercase tracking-[0.14em] ${headText}`}
+            style={{
+              borderColor: "rgba(255, 255, 255, 0.12)",
+              backgroundColor: BG,
+            }}
           >
-            <th className={`w-14 pl-4 pr-2 ${rowPad} text-center`}>#</th>
-            <th className={`pl-3 pr-2 ${rowPad} text-left`}>Team</th>
-            <th className={`w-[4.5rem] px-2 ${rowPad} text-center`}>WW</th>
-            <th className={`w-[4.5rem] px-2 ${rowPad} text-center`}>Elims</th>
-            <th className={`w-[5.5rem] px-2 ${rowPad} text-center`}>Place pts</th>
-            <th className={`w-[5.5rem] px-2 ${rowPad} text-center`}>Total pts</th>
+            <th className={`w-14 pl-4 pr-2 ${headPad} text-center`} style={headTh}>
+              #
+            </th>
+            <th className={`pl-3 pr-2 ${headPad} text-left`} style={headTh}>
+              Team
+            </th>
+            <th className={`px-2 ${headPad} text-center`} style={headTh}>
+              WW
+            </th>
+            <th className={`px-2 ${headPad} text-center`} style={headTh}>
+              Elims
+            </th>
+            <th className={`px-2 ${headPad} text-center`} style={headTh}>
+              Place pts
+            </th>
+            <th className={`px-2 ${headPad} text-center`} style={headTh}>
+              Total pts
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -51,64 +165,63 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
             <tr>
               <td
                 colSpan={6}
-                className="px-2 py-8 text-center text-sm text-slate-500"
-                style={{ fontFamily: FONT_BOARD }}
+                className="px-2 py-8 text-center text-sm"
+                style={{ fontFamily: FONT_BOARD, color: TEXT_DIM }}
               >
                 —
               </td>
             </tr>
           ) : (
-            rows.map((r) => (
+            rows.map((r, i) => (
               <tr
                 key={r.team.id}
-                className={`border-b border-white/[0.06] bg-gradient-to-r ${rankAccent(r.rank)}`}
+                className="border-b"
+                style={{
+                  height: rowHeight,
+                  borderColor: `rgba(${GOLD_RGB}, 0.12)`,
+                  background: rowBackground(r, i),
+                }}
               >
-                <td className={`pl-4 pr-2 text-center align-middle ${rowPad}`}>
+                <td className={`pl-4 pr-2 text-center ${rowPad}`} style={cellMiddle}>
                   <span
-                    className={`font-display font-bold tabular-nums ${rankNum} ${rankLabelClass(r.rank)}`}
-                    style={{ fontFamily: FONT_DISPLAY }}
+                    className={`inline-block font-display font-bold tabular-nums ${rankNum}`}
+                    style={{
+                      fontFamily: FONT_DISPLAY,
+                      lineHeight: 1,
+                      color: rankColor(r),
+                    }}
                   >
-                    {r.rank}
+                    {formatStandingRank(r)}
                   </span>
                 </td>
-                <td className={`min-w-0 align-middle pl-3 pr-2 text-left ${rowPad}`}>
-                  <div className="flex min-w-0 items-center gap-3">
-                    <TeamAvatar team={r.team} size={dense ? "md" : "lg"} />
-                    <div
-                      className={`min-w-0 font-semibold leading-snug text-white ${nameSize}`}
-                      style={{
-                        fontFamily: FONT_BOARD,
-                        wordBreak: "break-word",
-                        overflowWrap: "anywhere",
-                        textTransform: "none",
-                        letterSpacing: "0.01em",
-                      }}
-                    >
-                      {r.team.name}
-                    </div>
-                  </div>
+                <td className={`min-w-0 pl-3 pr-2 text-left ${rowPad}`} style={cellMiddle}>
+                  <GraphicTeamCell team={r.team} dense={dense} nameSize={nameSize} />
                 </td>
                 <td
-                  className={`px-2 text-center align-middle font-mono text-[#ffb84d] ${rowPad} ${statSize}`}
-                  style={{ fontFamily: FONT_BOARD }}
+                  className={`px-2 text-center font-mono ${rowPad} ${statSize}`}
+                  style={{ fontFamily: FONT_BOARD, color: GOLD, ...statCell }}
                 >
                   {r.chickenDinners}
                 </td>
                 <td
-                  className={`px-2 text-center align-middle font-mono font-semibold text-slate-100 ${rowPad} ${statSize}`}
-                  style={{ fontFamily: FONT_BOARD }}
+                  className={`px-2 text-center font-mono font-semibold ${rowPad} ${statSize}`}
+                  style={{ fontFamily: FONT_BOARD, color: GOLD, ...statCell }}
                 >
                   {r.totalKills}
                 </td>
                 <td
-                  className={`px-2 text-center align-middle font-mono text-slate-300 ${rowPad} ${statSize}`}
-                  style={{ fontFamily: FONT_BOARD }}
+                  className={`px-2 text-center font-mono ${rowPad} ${statSize}`}
+                  style={{ fontFamily: FONT_BOARD, color: GOLD, ...statCell }}
                 >
                   {r.totalPlacementPoints}
                 </td>
                 <td
-                  className={`px-2 text-center align-middle font-mono font-bold text-[#5cf0d8] ${rowPad} ${statSize}`}
-                  style={{ fontFamily: FONT_BOARD }}
+                  className={`px-2 text-center font-mono font-bold ${rowPad} ${statSize}`}
+                  style={{
+                    fontFamily: FONT_BOARD,
+                    color: hasStandingsData(r) ? GOLD : TEXT_DIM,
+                    ...statCell,
+                  }}
                 >
                   {r.totalPoints}
                 </td>
@@ -133,14 +246,15 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
       <div
         ref={ref}
         lang="en"
-        className="relative box-border w-[1920px] min-h-[1080px] shrink-0 overflow-visible font-board text-slate-100 antialiased"
+        className="relative box-border w-[1920px] min-h-[1080px] shrink-0 overflow-visible font-board antialiased"
         style={{
           fontFeatureSettings: '"tnum" 1',
-          backgroundColor: "#03060c",
+          lineHeight: "normal",
+          color: GOLD,
+          backgroundColor: BG,
           backgroundImage: `
-            linear-gradient(165deg, #07162c 0%, #0a0f1c 42%, #04060e 100%),
-            radial-gradient(ellipse 90% 55% at 50% -15%, rgba(232,197,71,0.2), transparent 55%),
-            radial-gradient(ellipse 70% 40% at 100% 100%, rgba(0,180,200,0.07), transparent 50%)
+            linear-gradient(165deg, ${BG} 0%, ${BG} 100%),
+            radial-gradient(ellipse 80% 45% at 50% -8%, rgba(${GOLD_RGB}, 0.12), transparent 55%)
           `,
           fontFamily: FONT_BOARD,
         }}
@@ -157,28 +271,29 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
         />
 
         <div className="relative z-10 flex min-h-[1080px] flex-col pl-12 pr-28 pb-10 pt-11">
-          <header className="shrink-0 border-b border-white/10 pb-7">
+          <header className="shrink-0 border-b pb-7" style={{ borderColor: `rgba(${GOLD_RGB}, 0.2)` }}>
             <div className="min-w-0 max-w-[1400px]">
               <p
-                className="text-[12px] font-semibold tracking-[0.45em] text-[#e8c547]"
-                style={{ fontFamily: FONT_DISPLAY }}
+                className="text-[12px] font-semibold tracking-[0.45em]"
+                style={{ fontFamily: FONT_DISPLAY, color: GOLD }}
               >
                 OFFICIAL STANDINGS
               </p>
               <h1
-                className="mt-1 text-[5rem] font-bold leading-[0.95] tracking-[0.06em] text-[#fce9a6]"
+                className="mt-1 text-[5rem] font-bold leading-[0.95] tracking-[0.06em]"
                 style={{
                   fontFamily: FONT_DISPLAY,
-                  textShadow:
-                    "0 1px 0 #7a5a12, 0 4px 22px rgba(201,162,39,0.42), 0 0 36px rgba(255,236,180,0.18)",
+                  color: GOLD,
+                  textShadow: `0 2px 20px rgba(${GOLD_RGB}, 0.25)`,
                 }}
               >
                 GROUP STAGE RESULTS
               </h1>
               <p
-                className="mt-3 max-w-[1100px] text-[1.85rem] font-semibold leading-snug text-slate-100"
+                className="mt-3 max-w-[1100px] text-[1.85rem] font-semibold leading-snug"
                 style={{
                   fontFamily: FONT_BOARD,
+                  color: GOLD,
                   wordBreak: "break-word",
                   overflowWrap: "anywhere",
                   letterSpacing: "0.02em",
@@ -190,19 +305,62 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
           </header>
 
           <div className="mt-5 min-h-0 flex-1">
-            <div className="rounded-lg border border-white/[0.08] bg-black/22 pl-5 pr-14 py-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <div
+              className="rounded-lg border pl-5 pr-14 py-5"
+              style={{
+                borderColor: `rgba(${GOLD_RGB}, 0.22)`,
+                background: TABLE_PANEL_BG,
+                boxShadow: `inset 0 1px 0 rgba(${GOLD_RGB}, 0.15), 0 8px 32px rgba(0,0,0,0.4)`,
+              }}
+            >
               {rows.length === 0 ? (
                 <div
-                  className="py-16 text-center font-display text-2xl text-slate-500"
-                  style={{ fontFamily: FONT_DISPLAY }}
+                  className="py-16 text-center font-display text-2xl"
+                  style={{ fontFamily: FONT_DISPLAY, color: TEXT_DIM }}
                 >
                   No teams in this tournament
                 </div>
               ) : (
-                <div className="flex gap-8">
-                  <ResultsColumn rows={leftRows} dense={dense} />
-                  <div className="w-px shrink-0 self-stretch bg-white/10" aria-hidden />
-                  <ResultsColumn rows={rightRows} dense={dense} />
+                <div
+                  style={{
+                    display: "table",
+                    width: "100%",
+                    tableLayout: "fixed",
+                    borderCollapse: "separate",
+                    borderSpacing: 0,
+                  }}
+                >
+                  <div style={{ display: "table-row" }}>
+                    <div
+                      style={{
+                        display: "table-cell",
+                        width: "50%",
+                        verticalAlign: "top",
+                        paddingRight: 16,
+                      }}
+                    >
+                      <ResultsColumn rows={leftRows} dense={dense} />
+                    </div>
+                    <div
+                      style={{
+                        display: "table-cell",
+                        width: 8,
+                        verticalAlign: "top",
+                        background: `linear-gradient(180deg, rgba(${GOLD_RGB}, 0.08), rgba(${GOLD_RGB}, 0.35), rgba(${GOLD_RGB}, 0.08))`,
+                      }}
+                      aria-hidden
+                    />
+                    <div
+                      style={{
+                        display: "table-cell",
+                        width: "50%",
+                        verticalAlign: "top",
+                        paddingLeft: 16,
+                      }}
+                    >
+                      <ResultsColumn rows={rightRows} dense={dense} />
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

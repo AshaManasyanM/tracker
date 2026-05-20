@@ -20,6 +20,24 @@ function slugify(name: string): string {
   return name.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 48);
 }
 
+async function waitForGraphicImages(root: HTMLElement): Promise<void> {
+  const imgs = [...root.querySelectorAll("img")];
+  await Promise.all(
+    imgs.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete && img.naturalHeight > 0) {
+            resolve();
+            return;
+          }
+          const done = () => resolve();
+          img.addEventListener("load", done, { once: true });
+          img.addEventListener("error", done, { once: true });
+        }),
+    ),
+  );
+}
+
 export function FinalResultsModal({
   open,
   onClose,
@@ -86,15 +104,25 @@ export function FinalResultsModal({
       if (document.fonts?.ready) {
         await document.fonts.ready;
       }
+      await waitForGraphicImages(el);
       await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
       const canvas = await html2canvas(el, {
         scale: 2,
         logging: false,
-        backgroundColor: "#03060c",
+        backgroundColor: "#070b14",
         useCORS: true,
         allowTaint: false,
         imageTimeout: 20000,
+        width: EXPORT_W,
+        height: Math.max(EXPORT_MIN_H, el.offsetHeight),
+        windowWidth: EXPORT_W,
+        windowHeight: Math.max(EXPORT_MIN_H, el.offsetHeight),
+        scrollX: 0,
+        scrollY: 0,
+        onclone: (_doc, cloned) => {
+          cloned.style.lineHeight = "normal";
+        },
       });
       await new Promise<void>((resolve, reject) => {
         canvas.toBlob(
@@ -141,7 +169,7 @@ export function FinalResultsModal({
       <div className="flex max-h-[100dvh] w-full max-w-[min(1240px,100vw)] flex-col gap-3 overflow-y-auto rounded-t-2xl border border-[#c9a227]/35 bg-[#070b14] p-3 shadow-[0_0_80px_rgba(0,0,0,0.65)] sm:max-h-[94vh] sm:gap-4 sm:rounded-2xl sm:p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-xl font-bold tracking-wide text-[#f0dc93]">
+            <h2 className="font-display text-xl font-bold tracking-wide text-[#E6C15A]">
               Group stage results graphic
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
@@ -199,8 +227,8 @@ export function FinalResultsModal({
         </div>
 
         <div
-          className="fixed top-0 overflow-visible"
-          style={{ left: "-12000px", width: EXPORT_W, minHeight: EXPORT_MIN_H }}
+          className="pointer-events-none fixed left-0 top-0 -z-[1] overflow-visible opacity-0"
+          style={{ width: EXPORT_W, minHeight: EXPORT_MIN_H, lineHeight: "normal" }}
           aria-hidden="true"
         >
           <FinalResultsGraphic ref={captureRef} {...graphicProps} />

@@ -1,8 +1,9 @@
 import type { Match, Team, Tournament } from "../types/tournament";
+import { buildMatchLabelFromMeta, nextMatchDay } from "./matchDisplay";
 import { newId } from "./id";
 import { normalizeMatchTeamResult } from "./matchResultKills";
 
-function emptyResultsForTeams(teams: Team[]): Match["results"] {
+export function emptyResultsForTeams(teams: Team[]): Match["results"] {
   const results: Match["results"] = {};
   for (const t of teams) {
     results[t.id] = normalizeMatchTeamResult(t, { placement: null, kills: 0 });
@@ -15,7 +16,9 @@ export function createEmptyTournament(name: string): Tournament {
   const teams: Team[] = [];
   const firstMatch: Match = {
     id: newId("match"),
-    label: "Match 1",
+    label: "Day 1",
+    day: 1,
+    map: "",
     order: 0,
     results: {},
   };
@@ -36,12 +39,21 @@ export function forkEmptyTournamentKeepId(id: string, displayName: string): Tour
   return { ...t, id };
 }
 
-export function appendMatch(teams: Team[], matches: Match[]): Match {
+export function appendMatch(
+  teams: Team[],
+  matches: Match[],
+  opts?: { day?: number },
+): Match {
   const nextOrder =
     matches.length === 0 ? 0 : Math.max(...matches.map((m) => m.order)) + 1;
+  const day =
+    opts?.day != null && opts.day > 0 ? Math.floor(opts.day) : nextMatchDay(matches);
+  const map = "";
   return {
     id: newId("match"),
-    label: `Match ${matches.length + 1}`,
+    label: buildMatchLabelFromMeta(day, map, matches.length),
+    day,
+    map,
     order: nextOrder,
     results: emptyResultsForTeams(teams),
   };

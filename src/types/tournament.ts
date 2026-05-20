@@ -31,8 +31,12 @@ export type MatchTeamResult = {
 
 export type Match = {
   id: string;
-  /** Shown in selectors, e.g. "Round 3 — Erangel" */
+  /** Auto-built from day + map (e.g. "Day 2 — Erangel"); fallback "Match N" if both empty */
   label: string;
+  /** Competition day number (1 = Day 1) */
+  day?: number;
+  /** Map name (Erangel, Miramar, Sanhok, etc.) */
+  map?: string;
   /** Sort order within the tournament */
   order: number;
   /** teamId → result */

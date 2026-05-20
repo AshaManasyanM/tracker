@@ -15,8 +15,16 @@ export type TeamStanding = {
   chickenDinners: number;
 };
 
+/** Teams that entered at least one placement rank above teams with no match data. */
 function compareStandings(a: TeamStanding, b: TeamStanding): number {
+  const aPlayed = a.matchesPlayed > 0;
+  const bPlayed = b.matchesPlayed > 0;
+  if (aPlayed !== bPlayed) return aPlayed ? -1 : 1;
+
   if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+  if (b.totalPlacementPoints !== a.totalPlacementPoints) {
+    return b.totalPlacementPoints - a.totalPlacementPoints;
+  }
   if (b.totalKills !== a.totalKills) return b.totalKills - a.totalKills;
   if (a.bestPlacement !== b.bestPlacement) return a.bestPlacement - b.bestPlacement;
   return b.chickenDinners - a.chickenDinners;
@@ -59,13 +67,24 @@ export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[
   rows.sort(compareStandings);
   for (let i = 0; i < rows.length; i++) {
     const cur = rows[i]!;
+    if (cur.matchesPlayed === 0) {
+      cur.rank = 0;
+      continue;
+    }
     let strictlyBetter = 0;
     for (let j = 0; j < rows.length; j++) {
-      if (compareStandings(rows[j]!, cur) < 0) strictlyBetter++;
+      const other = rows[j]!;
+      if (other.matchesPlayed === 0) continue;
+      if (compareStandings(other, cur) < 0) strictlyBetter++;
     }
     cur.rank = strictlyBetter + 1;
   }
   return rows;
+}
+
+/** Rank label for UI — unplayed squads show - instead of sharing a numeric place. */
+export function formatStandingRank(row: TeamStanding): string {
+  return row.matchesPlayed === 0 ? "-" : String(row.rank);
 }
 
 /** Returns teamIds that share the same placement value within a match (data issues). */

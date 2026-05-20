@@ -5,6 +5,23 @@ import { matchPointsForTeam } from "../lib/scoring";
 import { effectiveTeamKills } from "../lib/matchResultKills";
 import { TeamAvatar } from "./TeamAvatar";
 
+function teamHasPlacementInAnyMatch(teamId: string, matches: Match[]): boolean {
+  return matches.some((m) => {
+    const p = m.results[teamId]?.placement;
+    return p !== null && p !== undefined;
+  });
+}
+
+function placeFieldPlaceholder(
+  teamId: string,
+  matches: Match[],
+  placement: number | null,
+): string {
+  if (placement !== null) return "—";
+  if (!teamHasPlacementInAnyMatch(teamId, matches)) return "-";
+  return "Place";
+}
+
 function useTeamRows(teams: Team[], teamSearch: string) {
   return useMemo(() => {
     const q = teamSearch.trim().toLowerCase();
@@ -41,14 +58,20 @@ export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamS
     <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
       <div className="flex flex-col gap-3 p-3 md:hidden">
         {teams.map((team) => (
-          <TeamMatchCard key={team.id} team={team} match={match} />
+          <TeamMatchCard key={team.id} team={team} match={match} allMatches={tournament.matches} />
         ))}
       </div>
       <div className="hidden overflow-x-auto px-2 pb-2 pt-1 md:block sm:px-3 sm:pb-3">
-        <table className="w-full min-w-[640px] border-separate border-spacing-x-0 border-spacing-y-3 text-sm">
+        <table className="w-full min-w-[720px] border-separate border-spacing-x-0 border-spacing-y-3 text-sm">
+          <colgroup>
+            <col className="min-w-[220px] w-[38%]" />
+            <col className="w-28" />
+            <col className="min-w-[100px]" />
+            <col className="w-32" />
+          </colgroup>
           <thead>
             <tr className="border-b border-line bg-canvas-raised/70 text-left text-xs uppercase tracking-wide text-slate-500">
-              <th className="py-2 pl-4 pr-2 font-medium sm:pl-5 sm:pr-3">Team</th>
+              <th className="min-w-[220px] py-2 pl-5 pr-4 font-medium sm:pl-6 sm:pr-5">Team</th>
               <th className="w-28 py-2 px-2 text-center font-medium sm:px-3">Place</th>
               <th className="min-w-[140px] py-2 px-2 text-center font-medium sm:px-3">Elims</th>
               <th className="w-32 py-2 px-2 text-center font-medium sm:px-3">Total pts</th>
@@ -56,7 +79,12 @@ export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamS
           </thead>
           <tbody className="[&_tr]:bg-canvas/40">
             {teams.map((team) => (
-              <TeamMatchTableRow key={team.id} team={team} match={match} />
+              <TeamMatchTableRow
+                key={team.id}
+                team={team}
+                match={match}
+                allMatches={tournament.matches}
+              />
             ))}
           </tbody>
         </table>
@@ -65,7 +93,15 @@ export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamS
   );
 }
 
-function TeamMatchCard({ team, match }: { team: Team; match: Match }) {
+function TeamMatchCard({
+  team,
+  match,
+  allMatches,
+}: {
+  team: Team;
+  match: Match;
+  allMatches: Match[];
+}) {
   const { dispatch } = useTournament();
   const r = match.results[team.id] ?? { placement: null, kills: 0 };
   const roster = team.players ?? [];
@@ -73,28 +109,39 @@ function TeamMatchCard({ team, match }: { team: Team; match: Match }) {
   const { total } = matchPointsForTeam(r.placement, elimTotal);
   const dnp = r.placement === null;
   const pk = r.playerKills ?? {};
+  const placePlaceholder = placeFieldPlaceholder(team.id, allMatches, r.placement);
+  const showHashPlace = dnp && !teamHasPlacementInAnyMatch(team.id, allMatches);
+
+  const inputClass =
+    "w-14 shrink-0 rounded-md border border-line bg-canvas px-1.5 py-1.5 text-center text-sm font-mono tabular-nums text-slate-100";
 
   return (
-    <article className="rounded-lg border border-line/60 bg-canvas/40 p-3">
-      <div className="mb-3 flex min-w-0 items-center gap-2">
-        <TeamAvatar team={team} size="sm" className="shrink-0" />
-        <div className="min-w-0 flex-1">
-          <div className="truncate font-medium text-slate-100">{team.name}</div>
-          {team.tag && <div className="truncate text-xs text-slate-500">{team.tag}</div>}
+    <article className="rounded-lg border border-line/60 bg-canvas/40 px-2 py-2 sm:px-3 sm:py-2.5">
+      <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+        <div className="flex min-w-[132px] flex-1 items-center gap-3 pr-1 sm:min-w-[160px] sm:pr-2">
+          <TeamAvatar team={team} size="md" className="shrink-0" />
+          <div className="min-w-0 flex-1">
+            <div className="line-clamp-2 text-sm font-medium leading-snug text-slate-100">
+              {team.name}
+            </div>
+            {team.tag && (
+              <div className="mt-0.5 truncate text-xs text-slate-500">{team.tag}</div>
+            )}
+          </div>
         </div>
-      </div>
-      <div className="grid grid-cols-3 gap-2 text-xs">
-        <label className="flex flex-col gap-1 text-slate-500">
-          Place
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+        <label className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
+          <span className="w-7 text-right">Pl</span>
           <input
             aria-label={`${team.name} placement`}
             inputMode="numeric"
-            className="w-full rounded-md border border-line bg-canvas px-2 py-2 text-center font-mono tabular-nums text-slate-100"
+            className={`${inputClass}${showHashPlace ? " placeholder:text-slate-400" : ""}`}
             value={dnp ? "" : String(r.placement ?? "")}
-            placeholder="—"
+            placeholder={placePlaceholder}
+            title={showHashPlace ? "No placement in any match yet" : undefined}
             onChange={(e) => {
               const raw = e.target.value.trim();
-              if (raw === "") {
+              if (raw === "" || raw === "-" || raw === "#") {
                 dispatch({
                   type: "setMatchResult",
                   matchId: match.id,
@@ -114,14 +161,14 @@ function TeamMatchCard({ team, match }: { team: Team; match: Match }) {
             }}
           />
         </label>
-        <label className="flex flex-col gap-1 text-slate-500">
-          Elims
+        <label className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
+          <span className="w-7 text-right">K</span>
           {roster.length === 0 ? (
             <input
               disabled={dnp}
               aria-label={`${team.name} kills`}
               inputMode="numeric"
-              className="w-full rounded-md border border-line bg-canvas px-2 py-2 text-center font-mono tabular-nums text-slate-100 disabled:opacity-40"
+              className={`${inputClass} disabled:opacity-40`}
               value={dnp ? "" : String(r.kills)}
               onChange={(e) => {
                 const raw = e.target.value.trim();
@@ -145,16 +192,20 @@ function TeamMatchCard({ team, match }: { team: Team; match: Match }) {
               }}
             />
           ) : (
-            <div className="flex h-[42px] items-center justify-center rounded-md border border-line/50 bg-canvas/60 font-mono text-sm tabular-nums text-slate-200">
+            <span
+              className="flex w-14 shrink-0 items-center justify-center rounded-md border border-line/50 bg-canvas/60 py-1.5 font-mono text-sm tabular-nums text-slate-200"
+              title="Sum of player elims"
+            >
               {dnp ? "—" : elimTotal}
-            </div>
+            </span>
           )}
         </label>
-        <div className="flex flex-col gap-1 text-slate-500">
-          Total pts
-          <div className="flex h-[42px] items-center justify-center font-mono text-lg tabular-nums text-accent">
+        <div className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
+          <span className="w-7 text-right">Pts</span>
+          <span className="flex w-14 items-center justify-center font-mono text-sm tabular-nums text-accent">
             {dnp ? "—" : total}
-          </div>
+          </span>
+        </div>
         </div>
       </div>
       {roster.length > 0 && (
@@ -189,7 +240,15 @@ function TeamMatchCard({ team, match }: { team: Team; match: Match }) {
   );
 }
 
-function TeamMatchTableRow({ team, match }: { team: Team; match: Match }) {
+function TeamMatchTableRow({
+  team,
+  match,
+  allMatches,
+}: {
+  team: Team;
+  match: Match;
+  allMatches: Match[];
+}) {
   const { dispatch } = useTournament();
   const r = match.results[team.id] ?? { placement: null, kills: 0 };
   const roster = team.players ?? [];
@@ -197,15 +256,17 @@ function TeamMatchTableRow({ team, match }: { team: Team; match: Match }) {
   const { total } = matchPointsForTeam(r.placement, elimTotal);
   const dnp = r.placement === null;
   const pk = r.playerKills ?? {};
+  const placePlaceholder = placeFieldPlaceholder(team.id, allMatches, r.placement);
+  const showHashPlace = dnp && !teamHasPlacementInAnyMatch(team.id, allMatches);
 
   return (
     <tr className="hover:bg-canvas-raised/30 [&>td]:border-y [&>td]:border-line/50 [&>td:first-child]:rounded-l-lg [&>td:last-child]:rounded-r-lg">
-      <td className="align-middle py-3 pl-4 pr-2 sm:py-4 sm:pl-5 sm:pr-3">
-        <div className="flex min-w-0 items-center gap-2 text-left">
-          <TeamAvatar team={team} size="sm" className="shrink-0" />
+      <td className="min-w-[220px] align-middle py-3 pl-5 pr-4 sm:py-4 sm:pl-6 sm:pr-5">
+        <div className="flex min-w-0 items-center gap-3 text-left">
+          <TeamAvatar team={team} size="md" className="shrink-0" />
           <div className="min-w-0 flex-1 text-left">
-            <div className="truncate font-medium text-slate-100">{team.name}</div>
-            {team.tag && <div className="truncate text-xs text-slate-500">{team.tag}</div>}
+            <div className="font-medium leading-snug text-slate-100">{team.name}</div>
+            {team.tag && <div className="mt-0.5 truncate text-xs text-slate-500">{team.tag}</div>}
             {roster.length > 0 && (
               <div className="mt-2 flex flex-col gap-1.5 border-t border-line/60 pt-2">
                 {roster.map((p) => (
@@ -241,17 +302,19 @@ function TeamMatchTableRow({ team, match }: { team: Team; match: Match }) {
         <input
           aria-label={`${team.name} placement`}
           title={
-            dnp
-              ? "Enter placement to count this lobby (clear to skip team for this round)"
-              : undefined
+            showHashPlace
+              ? "No placement in any match yet — enter a place for this map"
+              : dnp
+                ? "Enter placement to count this lobby (clear to skip team for this round)"
+                : undefined
           }
           inputMode="numeric"
-          className="mx-auto w-full max-w-[5rem] rounded-md border border-line bg-canvas px-2 py-1.5 text-center font-mono tabular-nums text-slate-100"
+          className={`mx-auto w-full max-w-[5rem] rounded-md border border-line bg-canvas px-2 py-1.5 text-center font-mono tabular-nums text-slate-100${showHashPlace ? " placeholder:text-slate-400" : ""}`}
           value={dnp ? "" : String(r.placement ?? "")}
-          placeholder={dnp ? "Place" : "—"}
+          placeholder={placePlaceholder}
           onChange={(e) => {
             const raw = e.target.value.trim();
-            if (raw === "") {
+            if (raw === "" || raw === "-" || raw === "#") {
               dispatch({
                 type: "setMatchResult",
                 matchId: match.id,
