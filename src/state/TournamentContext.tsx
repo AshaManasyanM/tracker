@@ -10,7 +10,8 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
-import type { MatchTeamResult, Team, Tournament } from "../types/tournament";
+import type { MatchTeamResult, PlayerGender, Team, Tournament } from "../types/tournament";
+import { isPlayerGender } from "../lib/playerGender";
 import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
@@ -38,8 +39,14 @@ export type TournamentAction =
   | { type: "addTeam"; name: string; tag?: string }
   | { type: "updateTeam"; teamId: string; name: string; tag?: string }
   | { type: "setTeamLogo"; teamId: string; logoDataUrl: string | null }
-  | { type: "addPlayer"; teamId: string; name: string }
-  | { type: "updatePlayer"; teamId: string; playerId: string; name: string }
+  | { type: "addPlayer"; teamId: string; name: string; gender: PlayerGender }
+  | {
+      type: "updatePlayer";
+      teamId: string;
+      playerId: string;
+      name?: string;
+      gender?: PlayerGender;
+    }
   | { type: "removePlayer"; teamId: string; playerId: string }
   | { type: "removeTeam"; teamId: string }
   | { type: "reorderTeams"; teamIds: string[] }
@@ -125,11 +132,13 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     case "addPlayer": {
       const team = state.teams.find((t) => t.id === action.teamId);
       if (!team) return state;
+      if (!isPlayerGender(action.gender)) return state;
       const players = [...(team.players ?? [])];
       if (players.length >= MAX_PLAYERS_PER_TEAM) return state;
       const player = {
         id: newId("player"),
         name: action.name.trim() || `Player ${players.length + 1}`,
+        gender: action.gender,
       };
       const nextTeam: Team = { ...team, players: [...players, player] };
       const teams = state.teams.map((t) => (t.id === team.id ? nextTeam : t));
@@ -143,9 +152,17 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     case "updatePlayer": {
       const teams = state.teams.map((t) => {
         if (t.id !== action.teamId) return t;
-        const players = (t.players ?? []).map((p) =>
-          p.id === action.playerId ? { ...p, name: action.name.trim() || p.name } : p,
-        );
+        const players = (t.players ?? []).map((p) => {
+          if (p.id !== action.playerId) return p;
+          const next = { ...p };
+          if (action.name !== undefined) {
+            next.name = action.name.trim() || p.name;
+          }
+          if (action.gender !== undefined && isPlayerGender(action.gender)) {
+            next.gender = action.gender;
+          }
+          return next;
+        });
         return { ...t, players };
       });
       return touch({ ...state, teams });

@@ -1,13 +1,20 @@
 import type { Match, Team } from "../types/tournament";
+import { isPlayerGender, type PlayerGender } from "./playerGender";
 
 export type PlayerStanding = {
   rank: number;
   playerId: string;
   playerName: string;
+  gender: PlayerGender;
   teamId: string;
   teamName: string;
   totalKills: number;
   matchesPlayed: number;
+};
+
+export type DualMvp = {
+  boy: PlayerStanding | null;
+  girl: PlayerStanding | null;
 };
 
 function comparePlayers(a: PlayerStanding, b: PlayerStanding): number {
@@ -16,22 +23,32 @@ function comparePlayers(a: PlayerStanding, b: PlayerStanding): number {
   return a.playerName.localeCompare(b.playerName);
 }
 
+function assignRanks(rows: PlayerStanding[]): void {
+  for (let i = 0; i < rows.length; i++) {
+    const cur = rows[i]!;
+    let strictlyBetter = 0;
+    for (let j = 0; j < rows.length; j++) {
+      if (comparePlayers(rows[j]!, cur) < 0) strictlyBetter++;
+    }
+    cur.rank = strictlyBetter + 1;
+  }
+}
+
 /**
  * Fraggerboard: per-player elim totals across matches where their team has a result (placement set).
- * Uses roster `playerKills` when present; otherwise no row (teams without rosters do not produce
- * player stats).
+ * Only roster members with boy/girl set are included.
  */
 export function computePlayerStandings(teams: Team[], matches: Match[]): PlayerStanding[] {
   const rows: PlayerStanding[] = [];
 
   for (const team of teams) {
-    const players = team.players ?? [];
-    if (players.length === 0) continue;
-    for (const p of players) {
+    for (const p of team.players ?? []) {
+      if (!isPlayerGender(p.gender)) continue;
       rows.push({
         rank: 0,
         playerId: p.id,
         playerName: p.name,
+        gender: p.gender,
         teamId: team.id,
         teamName: team.name,
         totalKills: 0,
@@ -46,9 +63,8 @@ export function computePlayerStandings(teams: Team[], matches: Match[]): PlayerS
     for (const team of teams) {
       const r = m.results[team.id];
       if (!r || r.placement === null) continue;
-      const players = team.players ?? [];
-      if (players.length === 0) continue;
-      for (const p of players) {
+      for (const p of team.players ?? []) {
+        if (!isPlayerGender(p.gender)) continue;
         const row = byPlayer.get(p.id);
         if (!row) continue;
         const pk = r.playerKills?.[p.id] ?? 0;
@@ -59,20 +75,27 @@ export function computePlayerStandings(teams: Team[], matches: Match[]): PlayerS
   }
 
   rows.sort(comparePlayers);
-  for (let i = 0; i < rows.length; i++) {
-    const cur = rows[i]!;
-    let strictlyBetter = 0;
-    for (let j = 0; j < rows.length; j++) {
-      if (comparePlayers(rows[j]!, cur) < 0) strictlyBetter++;
-    }
-    cur.rank = strictlyBetter + 1;
-  }
+  assignRanks(rows);
   return rows;
 }
 
-export function getMvp(teams: Team[], matches: Match[]): PlayerStanding | null {
+function topMvpForGender(rows: PlayerStanding[], gender: PlayerGender): PlayerStanding | null {
+  const top = rows.find((r) => r.gender === gender && r.totalKills > 0);
+  return top ?? null;
+}
+
+export function getMvps(teams: Team[], matches: Match[]): DualMvp {
   const rows = computePlayerStandings(teams, matches);
-  const top = rows[0];
-  if (!top || top.totalKills <= 0) return null;
-  return top;
+  return {
+    boy: topMvpForGender(rows, "boy"),
+    girl: topMvpForGender(rows, "girl"),
+  };
+}
+
+/** @deprecated Use getMvps — kept for any single-MVP callers */
+export function getMvp(teams: Team[], matches: Match[]): PlayerStanding | null {
+  const { boy, girl } = getMvps(teams, matches);
+  if (!boy) return girl;
+  if (!girl) return boy;
+  return boy.totalKills >= girl.totalKills ? boy : girl;
 }

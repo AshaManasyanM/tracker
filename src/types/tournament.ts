@@ -1,7 +1,11 @@
+export type PlayerGender = "boy" | "girl";
+
 export type Player = {
   id: string;
   /** In-game name or real name — extend later with IGN/role fields if needed */
   name: string;
+  /** Boy or girl — required when adding; needed for separate boy/girl MVP. */
+  gender?: PlayerGender;
 };
 
 export type Team = {

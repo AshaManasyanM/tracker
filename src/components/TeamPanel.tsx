@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useTournament } from "../state/TournamentContext";
-import type { Player, Team } from "../types/tournament";
+import type { Player, PlayerGender, Team } from "../types/tournament";
+import { genderLabel, isPlayerGender, playerHasGender } from "../lib/playerGender";
 import { MAX_PLAYERS_PER_TEAM } from "../lib/matchResultKills";
 import { processTeamLogoFile } from "../lib/processTeamLogo";
 import { TeamAvatar } from "./TeamAvatar";
@@ -72,6 +73,8 @@ export function TeamPanel() {
         <h2 className="text-base font-semibold text-slate-100">Roster order</h2>
         <p className="mt-1 text-xs text-slate-500">
           Order controls the Live console grid — put active squads at the top for faster typing.
+          Each player needs <span className="text-slate-400">Boy</span> or{" "}
+          <span className="text-slate-400">Girl</span> for separate MVPs.
         </p>
         <label className="mt-3 block text-xs text-slate-400">
           <span className="sr-only">Search teams</span>
@@ -266,16 +269,51 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
   );
 }
 
+function GenderToggle({
+  value,
+  onChange,
+  invalid,
+}: {
+  value: PlayerGender | "";
+  onChange: (g: PlayerGender) => void;
+  invalid?: boolean;
+}) {
+  const base =
+    "rounded-md border px-2.5 py-1 text-xs font-medium transition-colors";
+  const active = "border-accent/50 bg-accent/15 text-accent-glow";
+  const idle = "border-line text-slate-400 hover:border-slate-500 hover:text-slate-200";
+  const ring = invalid ? "ring-1 ring-warn/50" : "";
+
+  return (
+    <div className={`flex gap-1 ${ring}`} role="group" aria-label="Boy or girl">
+      {(["boy", "girl"] as const).map((g) => (
+        <button
+          key={g}
+          type="button"
+          className={`${base} ${value === g ? active : idle}`}
+          aria-pressed={value === g}
+          onClick={() => onChange(g)}
+        >
+          {genderLabel(g)}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function TeamRosterEditor({ team }: { team: Team }) {
   const { dispatch } = useTournament();
   const players = team.players ?? [];
   const [draft, setDraft] = useState("");
+  const [draftGender, setDraftGender] = useState<PlayerGender | "">("");
   const atCap = players.length >= MAX_PLAYERS_PER_TEAM;
+  const canAdd = draft.trim().length > 0 && isPlayerGender(draftGender) && !atCap;
 
   const add = () => {
-    if (atCap) return;
-    dispatch({ type: "addPlayer", teamId: team.id, name: draft });
+    if (!canAdd || !isPlayerGender(draftGender)) return;
+    dispatch({ type: "addPlayer", teamId: team.id, name: draft, gender: draftGender });
     setDraft("");
+    setDraftGender("");
   };
 
   return (
@@ -295,25 +333,33 @@ function TeamRosterEditor({ team }: { team: Team }) {
           ))}
         </ul>
       )}
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
+          onKeyDown={(e) => e.key === "Enter" && canAdd && add()}
           maxLength={48}
           placeholder="Player name"
           disabled={atCap}
           className="min-w-[140px] flex-1 rounded-md border border-line bg-canvas px-2 py-1.5 text-xs text-slate-100 disabled:opacity-40"
         />
+        <GenderToggle
+          value={draftGender}
+          onChange={setDraftGender}
+          invalid={draft.trim().length > 0 && !isPlayerGender(draftGender)}
+        />
         <button
           type="button"
-          disabled={atCap}
+          disabled={!canAdd}
           onClick={add}
           className="rounded-md border border-accent/35 bg-accent/10 px-3 py-1.5 text-xs font-medium text-accent-glow hover:bg-accent/15 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Add player
         </button>
       </div>
+      {draft.trim() && !isPlayerGender(draftGender) && (
+        <p className="mt-1.5 text-[10px] text-warn">Choose Boy or Girl before adding.</p>
+      )}
     </div>
   );
 }
@@ -321,6 +367,7 @@ function TeamRosterEditor({ team }: { team: Team }) {
 function PlayerRow({ teamId, player }: { teamId: string; player: Player }) {
   const { dispatch } = useTournament();
   const [name, setName] = useState(player.name);
+  const gender = playerHasGender(player) ? player.gender : "";
 
   useEffect(() => {
     setName(player.name);
@@ -341,6 +388,18 @@ function PlayerRow({ teamId, player }: { teamId: string; player: Player }) {
         }
         maxLength={48}
         className="min-w-0 flex-1 rounded border border-line bg-canvas px-2 py-1 text-xs text-slate-100"
+      />
+      <GenderToggle
+        value={gender}
+        onChange={(g) =>
+          dispatch({
+            type: "updatePlayer",
+            teamId,
+            playerId: player.id,
+            gender: g,
+          })
+        }
+        invalid={!playerHasGender(player)}
       />
       <button
         type="button"

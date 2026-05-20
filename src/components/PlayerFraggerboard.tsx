@@ -1,24 +1,60 @@
 import { useMemo } from "react";
 import type { Match, Team } from "../types/tournament";
-import { computePlayerStandings, getMvp } from "../lib/playerStats";
+import { computePlayerStandings, getMvps } from "../lib/playerStats";
+import { mvpTitleForGender } from "../lib/playerGender";
+export function MvpStrip({
+  teams,
+  matches,
+}: {
+  teams: Team[];
+  matches: Match[];
+}) {
+  const mvps = useMemo(() => getMvps(teams, matches), [teams, matches]);
 
-export function MvpStrip({ teams, matches }: { teams: Team[]; matches: Match[] }) {
-  const mvp = useMemo(() => getMvp(teams, matches), [teams, matches]);
-  if (!mvp) {
-    return (
-      <div className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-xs text-slate-500">
-        MVP unlocks once rosters have elim data (add players under Teams, then log kills per match).
-      </div>
-    );
-  }
   return (
-    <div className="flex items-start justify-between gap-2 rounded-lg border border-accent/25 bg-accent/5 px-3 py-2 text-xs text-slate-200">
-      <p className="min-w-0">
-        <span className="font-semibold text-accent-glow">MVP</span>{" "}
-        <span className="font-medium text-slate-100">{mvp.playerName}</span>
-        <span className="text-slate-500"> · {mvp.teamName}</span>
-      </p>
-      <span className="shrink-0 font-mono tabular-nums text-accent">{mvp.totalKills} elims</span>
+    <div className="flex flex-col gap-2">
+      {mvps.boy && (
+        <MvpSummaryRow
+          title={mvpTitleForGender("boy")}
+          playerName={mvps.boy.playerName}
+          teamName={mvps.boy.teamName}
+          totalKills={mvps.boy.totalKills}
+        />
+      )}
+      {mvps.girl && (
+        <MvpSummaryRow
+          title={mvpTitleForGender("girl")}
+          playerName={mvps.girl.playerName}
+          teamName={mvps.girl.teamName}
+          totalKills={mvps.girl.totalKills}
+        />
+      )}
+      {!mvps.boy && !mvps.girl && (
+        <p className="rounded-lg border border-line/80 bg-canvas/40 px-3 py-2 text-xs text-slate-500">
+          Boy and girl MVP leaders appear here after elims are logged.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function MvpSummaryRow({
+  title,
+  playerName,
+  teamName,
+  totalKills,
+}: {
+  title: string;
+  playerName: string;
+  teamName: string;
+  totalKills: number;
+}) {
+  return (
+    <div className="rounded-lg border border-accent/25 bg-accent/5 px-3 py-2 text-xs text-slate-200">
+      <span className="font-semibold text-accent-glow">{title}</span>{" "}
+      <span className="font-medium text-slate-100">{playerName}</span>
+      <span className="text-slate-500"> · {teamName}</span>
+      <span className="font-mono tabular-nums text-accent"> · {totalKills} elims</span>
     </div>
   );
 }
@@ -48,19 +84,39 @@ export function PlayerFraggerboard({ teams, matches }: { teams: Team[]; matches:
             <tr>
               <th className="py-1.5 pl-4 pr-2 text-center font-medium">#</th>
               <th className="py-1.5 pl-3 pr-2 text-left font-medium">Player</th>
+              <th className="py-1.5 px-2 text-center font-medium">M/F</th>
               <th className="py-1.5 pl-3 pr-2 text-left font-medium">Team</th>
               <th className="py-1.5 px-2 text-center font-medium">Elims</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((r) => (
-              <tr key={r.playerId} className="border-t border-line/70 odd:bg-canvas/30">
-                <td className="align-middle py-1.5 pl-4 pr-2 text-center font-mono text-slate-500">{r.rank}</td>
-                <td className="align-middle py-1.5 pl-3 pr-2 text-left font-medium text-slate-100">{r.playerName}</td>
-                <td className="max-w-[120px] truncate align-middle py-1.5 pl-3 pr-2 text-left text-slate-400">{r.teamName}</td>
-                <td className="align-middle py-1.5 px-2 text-center font-mono tabular-nums text-accent">{r.totalKills}</td>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-6 text-center text-slate-500">
+                  Set Boy or Girl on every player under Teams.
+                </td>
               </tr>
-            ))}
+            ) : (
+              rows.map((r) => (
+                <tr key={r.playerId} className="border-t border-line/70 odd:bg-canvas/30">
+                  <td className="align-middle py-1.5 pl-4 pr-2 text-center font-mono text-slate-500">
+                    {r.rank}
+                  </td>
+                  <td className="align-middle py-1.5 pl-3 pr-2 text-left font-medium text-slate-100">
+                    {r.playerName}
+                  </td>
+                  <td className="align-middle py-1.5 px-2 text-center text-slate-400">
+                    {r.gender === "boy" ? "B" : "G"}
+                  </td>
+                  <td className="max-w-[120px] truncate align-middle py-1.5 pl-3 pr-2 text-left text-slate-400">
+                    {r.teamName}
+                  </td>
+                  <td className="align-middle py-1.5 px-2 text-center font-mono tabular-nums text-accent">
+                    {r.totalKills}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

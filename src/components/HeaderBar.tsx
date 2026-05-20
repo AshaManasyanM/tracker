@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../state/AuthContext";
 import { useTournament } from "../state/TournamentContext";
 import { FinalResultsModal } from "./FinalResultsModal";
+import { MvpGraphicsControls } from "./MvpGraphicsControls";
 import { clearTournament, saveTournament } from "../lib/storage";
 import { isSupabaseConfigured } from "../lib/supabaseClient";
 import { saveLocalScratchAsCloudTournament } from "../lib/tournamentDb";
@@ -26,9 +28,17 @@ export function HeaderBar() {
   const { tournament, dispatch, saveStatus, persistMode } = useTournament();
   const [nameDraft, setNameDraft] = useState(tournament.name);
   const fileRef = useRef<HTMLInputElement>(null);
+  const jsonBtnRef = useRef<HTMLButtonElement>(null);
+  const jsonMenuPanelRef = useRef<HTMLDivElement>(null);
+  const [jsonMenuRect, setJsonMenuRect] = useState<{
+    top: number;
+    left: number;
+    width: number;
+  } | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
   const [finalOpen, setFinalOpen] = useState(false);
   const [cloudCopyBusy, setCloudCopyBusy] = useState(false);
+  const [jsonMenuOpen, setJsonMenuOpen] = useState(false);
 
   useEffect(() => {
     setNameDraft(tournament.name);
@@ -51,6 +61,56 @@ export function HeaderBar() {
     return "Auto-save on";
   }, [saveStatus, flash]);
 
+  const closeJsonMenu = () => {
+    setJsonMenuOpen(false);
+    setJsonMenuRect(null);
+  };
+
+  const openJsonMenu = () => {
+    const btn = jsonBtnRef.current;
+    if (btn) {
+      const r = btn.getBoundingClientRect();
+      setJsonMenuRect({ top: r.bottom + 4, left: r.right, width: r.width });
+    }
+    setJsonMenuOpen(true);
+  };
+
+  const toggleJsonMenu = () => {
+    if (jsonMenuOpen) closeJsonMenu();
+    else openJsonMenu();
+  };
+
+  useEffect(() => {
+    if (!jsonMenuOpen) return;
+    const onPointerDown = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (jsonBtnRef.current?.contains(t) || jsonMenuPanelRef.current?.contains(t)) return;
+      closeJsonMenu();
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeJsonMenu();
+    };
+    const onScrollOrResize = () => closeJsonMenu();
+    document.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("scroll", onScrollOrResize, true);
+    window.addEventListener("resize", onScrollOrResize);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("scroll", onScrollOrResize, true);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [jsonMenuOpen]);
+
+  const exportJson = () => {
+    downloadJson(
+      `scrim-${tournament.name.replace(/[^\w\-]+/g, "_").slice(0, 40) || "tournament"}.json`,
+      tournament,
+    );
+    closeJsonMenu();
+  };
+
   const onImport = async (file: File) => {
     try {
       const text = await file.text();
@@ -67,6 +127,7 @@ export function HeaderBar() {
         saveTournament(merged);
         window.location.reload();
       }
+      closeJsonMenu();
     } catch {
       alert("Could not import that JSON file.");
     }
@@ -130,7 +191,7 @@ export function HeaderBar() {
             />
           </label>
         </div>
-        <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap sm:items-center">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
         <span
             className={`rounded-full border px-2.5 py-1 text-xs font-medium tabular-nums ${
               saveStatus === "error"
@@ -151,19 +212,72 @@ export function HeaderBar() {
             <span className="sm:hidden">Graphic</span>
             <span className="hidden sm:inline">Group stage graphic</span>
           </button>
-      
+          <MvpGraphicsControls
+            teams={tournament.teams}
+            matches={tournament.matches}
+            tournamentName={tournament.name}
+          />
           <button
+            ref={jsonBtnRef}
             type="button"
-            className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-sm text-slate-200 hover:border-accent/30 hover:text-white"
-            onClick={() =>
-              downloadJson(
-                `scrim-${tournament.name.replace(/[^\w\-]+/g, "_").slice(0, 40) || "tournament"}.json`,
-                tournament,
-              )
-            }
+            aria-expanded={jsonMenuOpen}
+            aria-haspopup="menu"
+            className="flex items-center justify-center gap-1.5 rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-sm text-slate-200 hover:border-accent/30 hover:text-white"
+            onClick={toggleJsonMenu}
           >
-            Export JSON
+            JSON
+            <span className="text-[10px] text-slate-500" aria-hidden>
+              ▾
+            </span>
           </button>
+          {jsonMenuOpen &&
+            jsonMenuRect &&
+            createPortal(
+              <div
+                ref={jsonMenuPanelRef}
+                role="menu"
+                style={{
+                  position: "fixed",
+                  top: jsonMenuRect.top,
+                  left: Math.max(8, jsonMenuRect.left + jsonMenuRect.width - 168),
+                  width: 168,
+                  zIndex: 300,
+                }}
+                className="rounded-lg border border-line bg-canvas-raised py-1 shadow-[0_8px_32px_rgba(0,0,0,0.55)]"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-canvas-overlay"
+                  onClick={exportJson}
+                >
+                  Export JSON
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="block w-full px-3 py-2.5 text-left text-sm text-slate-200 hover:bg-canvas-overlay"
+                  onClick={() => {
+                    closeJsonMenu();
+                    fileRef.current?.click();
+                  }}
+                >
+                  Import JSON
+                </button>
+              </div>,
+              document.body,
+            )}
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void onImport(f);
+            }}
+          />
           {persistMode === "local" && user && isSupabaseConfigured && (
             <button
               type="button"
@@ -180,24 +294,6 @@ export function HeaderBar() {
               )}
             </button>
           )}
-          <button
-            type="button"
-            className="rounded-lg border border-line bg-canvas-overlay px-3 py-2 text-sm text-slate-200 hover:border-accent/30 hover:text-white"
-            onClick={() => fileRef.current?.click()}
-          >
-            Import JSON
-          </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="application/json,.json"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void onImport(f);
-            }}
-          />
           <button
             type="button"
             className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger hover:bg-danger/20"

@@ -5,6 +5,7 @@ const sizeClass = {
   md: "h-10 w-10 min-h-10 min-w-10 text-sm",
   lg: "h-12 w-12 min-h-12 min-w-12 text-base",
   xl: "h-16 w-16 min-h-16 min-w-16 text-xl",
+  "2xl": "h-[120px] w-[120px] min-h-[120px] min-w-[120px] text-3xl",
 } as const;
 
 export function TeamAvatar({
