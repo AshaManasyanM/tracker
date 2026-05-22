@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import type { Team } from "../types/tournament";
 import type { PlayerStanding } from "../lib/playerStats";
 import {
-  captureElementToPngBlob,
+  captureVisibleGraphic,
   downloadPngBlob,
   slugifyFilename,
 } from "../lib/graphicCapture";
@@ -30,7 +30,7 @@ export function MvpGraphicsModal({
   boy: MvpSlot | null;
   girl: MvpSlot | null;
 }) {
-  const captureRef = useRef<HTMLDivElement>(null);
+  const graphicRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
 
   const stamp = new Date().toISOString().slice(0, 10);
@@ -78,11 +78,11 @@ export function MvpGraphicsModal({
   }, [open, onClose]);
 
   const downloadPng = useCallback(async () => {
-    const el = captureRef.current;
+    const el = graphicRef.current;
     if (!el || !canCombined) return;
     setDownloading(true);
     try {
-      const blob = await captureElementToPngBlob(el, MVP_EXPORT_W, MVP_EXPORT_H);
+      const blob = await captureVisibleGraphic(el, MVP_EXPORT_W, MVP_EXPORT_H);
       downloadPngBlob(blob, `${base}_mvp_boy_girl_${stamp}.png`);
     } catch (e) {
       alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
@@ -106,7 +106,10 @@ export function MvpGraphicsModal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="flex max-h-[100dvh] w-full max-w-[min(1240px,100vw)] flex-col gap-3 overflow-y-auto rounded-t-2xl border border-[#c9a227]/35 bg-[#070b14] p-3 shadow-[0_0_80px_rgba(0,0,0,0.65)] sm:max-h-[94vh] sm:gap-4 sm:rounded-2xl sm:p-5">
+      <div
+        data-graphic-modal-scroll
+        className="flex max-h-[100dvh] w-full max-w-[min(1240px,100vw)] flex-col gap-3 overflow-y-auto rounded-t-2xl border border-[#c9a227]/35 bg-[#070b14] p-3 shadow-[0_0_80px_rgba(0,0,0,0.65)] sm:max-h-[94vh] sm:gap-4 sm:rounded-2xl sm:p-5"
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-bold tracking-wide text-[#E6C15A]">
@@ -153,7 +156,7 @@ export function MvpGraphicsModal({
                       transform: `scale(${PREVIEW_SCALE})`,
                     }}
                   >
-                    <MvpPairGraphic {...graphicProps} />
+                    <MvpPairGraphic ref={graphicRef} {...graphicProps} />
                   </div>
                 </div>
               </div>
@@ -166,15 +169,6 @@ export function MvpGraphicsModal({
           </p>
         )}
 
-        {canCombined && (
-          <div
-            className="pointer-events-none fixed left-0 top-0 -z-[1] overflow-visible opacity-0"
-            style={{ width: MVP_EXPORT_W, height: MVP_EXPORT_H, lineHeight: "normal" }}
-            aria-hidden="true"
-          >
-            <MvpPairGraphic ref={captureRef} {...graphicProps} />
-          </div>
-        )}
       </div>
     </div>,
     document.body,

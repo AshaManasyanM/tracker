@@ -1,4 +1,7 @@
-import html2canvas from "html2canvas";
+import { toBlob } from "html-to-image";
+import { GRAPHIC_BG } from "./graphicTheme";
+
+const EXPORT_PIXEL_RATIO = 2;
 
 export async function waitForGraphicImages(root: HTMLElement): Promise<void> {
   const imgs = [...root.querySelectorAll("img")];
@@ -18,10 +21,115 @@ export async function waitForGraphicImages(root: HTMLElement): Promise<void> {
   );
 }
 
+type StylePatch = {
+  element: HTMLElement;
+  previousCssText: string;
+};
+
+function applyStylePatch(element: HTMLElement, styles: Record<string, string>): StylePatch {
+  const previousCssText = element.style.cssText;
+  for (const [prop, value] of Object.entries(styles)) {
+    element.style.setProperty(prop, value);
+  }
+  return { element, previousCssText };
+}
+
+function revertStylePatch(patch: StylePatch): void {
+  patch.element.style.cssText = patch.previousCssText;
+}
+
+function findScaledWrapper(el: HTMLElement): HTMLElement | null {
+  let node: HTMLElement | null = el.parentElement;
+  while (node) {
+    const inline = node.style.transform;
+    if (inline.includes("scale")) return node;
+    const computed = getComputedStyle(node).transform;
+    if (computed !== "none") {
+      const m = computed.match(/^matrix\(([^)]+)\)$/);
+      if (m) {
+        const [a, , , d] = m[1].split(",").map((v) => Number.parseFloat(v.trim()));
+        if (a !== 1 || d !== 1) return node;
+      }
+    }
+    node = node.parentElement;
+  }
+  return null;
+}
+
+/** Capture the same on-screen preview node (unscales + unclips ancestors briefly). */
+export async function captureVisibleGraphic(
+  root: HTMLElement,
+  width: number,
+  height: number,
+  backgroundColor: string = GRAPHIC_BG,
+): Promise<Blob> {
+  const patches: StylePatch[] = [];
+  const scaled = findScaledWrapper(root);
+
+  let ancestor: HTMLElement | null = root.parentElement;
+  while (ancestor && ancestor !== document.body) {
+    // Do not patch modal-level scroll containers — leaves overflow stuck after download.
+    if (ancestor.dataset.graphicModalScroll != null) break;
+
+    const cs = getComputedStyle(ancestor);
+    const inlineW = ancestor.style.width;
+    const parsedW = inlineW.endsWith("px") ? Number.parseFloat(inlineW) : 0;
+    const clipBox = parsedW > 0 && parsedW < width - 1;
+
+    const patch: Record<string, string> = {
+      overflow: "visible",
+      "overflow-x": "visible",
+      "overflow-y": "visible",
+      "max-height": "none",
+    };
+    if (clipBox) {
+      patch.width = `${width}px`;
+      patch.height = `${height}px`;
+    } else if (cs.overflow !== "visible" || cs.maxHeight !== "none") {
+      patch["max-height"] = "none";
+    }
+    patches.push(applyStylePatch(ancestor, patch));
+    ancestor = ancestor.parentElement;
+  }
+
+  if (scaled) {
+    patches.push(
+      applyStylePatch(scaled, {
+        transform: "none",
+        position: "fixed",
+        left: "0",
+        top: "0",
+        width: `${width}px`,
+        height: `${height}px`,
+        "z-index": "2147483646",
+        margin: "0",
+      }),
+    );
+  }
+
+  patches.push(applyStylePatch(root, { transform: "none" }));
+
+  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+
+  try {
+    return await captureElementToPngBlob(root, width, height, backgroundColor);
+  } finally {
+    for (let i = patches.length - 1; i >= 0; i--) {
+      revertStylePatch(patches[i]!);
+    }
+    requestAnimationFrame(() => {
+      for (const el of patches) {
+        void el.element.offsetHeight;
+      }
+    });
+  }
+}
+
 export async function captureElementToPngBlob(
   el: HTMLElement,
   width: number,
   height: number,
+  backgroundColor: string = GRAPHIC_BG,
 ): Promise<Blob> {
   if (document.fonts?.ready) {
     await document.fonts.ready;
@@ -29,37 +137,19 @@ export async function captureElementToPngBlob(
   await waitForGraphicImages(el);
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-  const canvas = await html2canvas(el, {
-    scale: 2,
-    logging: false,
-    backgroundColor: "#070b14",
-    useCORS: true,
-    allowTaint: false,
-    imageTimeout: 20000,
+  const blob = await toBlob(el, {
+    pixelRatio: EXPORT_PIXEL_RATIO,
+    backgroundColor,
     width,
     height,
-    windowWidth: width,
-    windowHeight: height,
-    scrollX: 0,
-    scrollY: 0,
-    onclone: (_doc, cloned) => {
-      cloned.style.lineHeight = "normal";
-    },
+    cacheBust: true,
+    skipFonts: false,
   });
 
-  return new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) {
-          reject(new Error("Could not create image."));
-          return;
-        }
-        resolve(blob);
-      },
-      "image/png",
-      1,
-    );
-  });
+  if (!blob) {
+    throw new Error("Could not create image.");
+  }
+  return blob;
 }
 
 export function downloadPngBlob(blob: Blob, filename: string): void {

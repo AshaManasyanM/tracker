@@ -17,7 +17,7 @@ export function TeamAvatar({
   team: Team;
   size?: keyof typeof sizeClass;
   className?: string;
-  /** Eager load for PNG export (html2canvas on mobile). */
+  /** Eager load for PNG export. */
   priority?: boolean;
 }) {
   const box = `shrink-0 overflow-hidden rounded-md border border-line bg-canvas-raised ${sizeClass[size]} ${className}`;

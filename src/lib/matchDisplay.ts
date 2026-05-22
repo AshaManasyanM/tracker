@@ -25,7 +25,37 @@ export function buildMatchLabelFromMeta(
 
 export function nextMatchDay(matches: Match[]): number {
   if (matches.length === 0) return 1;
-  return Math.max(0, ...matches.map((m) => m.day ?? 0)) + 1;
+  return Math.max(0, ...matches.map((m) => resolveMatchDay(m) ?? 0)) + 1;
+}
+
+/** Renumber days 1…N after deletions so gaps disappear (e.g. only Day 2 left → Day 1). */
+export function compactMatchDays(matches: Match[]): Match[] {
+  const usedDays = [
+    ...new Set(
+      matches
+        .map((m) => resolveMatchDay(m))
+        .filter((d): d is number => d != null && d > 0),
+    ),
+  ].sort((a, b) => a - b);
+
+  const remap = new Map(usedDays.map((old, i) => [old, i + 1]));
+
+  return matches.map((m) => {
+    const old = resolveMatchDay(m);
+    if (old == null || old <= 0) return m;
+    const newDay = remap.get(old)!;
+    const label = buildMatchLabelFromMeta(newDay, m.map, m.order);
+    if (m.day === newDay && m.label === label) return m;
+    return { ...m, day: newDay, label };
+  });
+}
+
+/** Day from `match.day`, or parsed from labels like "Day 2 — Erangel". */
+export function resolveMatchDay(match: Pick<Match, "day" | "label">): number | null {
+  if (match.day != null && match.day > 0) return Math.floor(match.day);
+  const fromLabel = match.label.match(/\bday\s*(\d+)\b/i);
+  if (fromLabel) return Number.parseInt(fromLabel[1]!, 10);
+  return null;
 }
 
 export type MatchDayGroup = {
@@ -38,7 +68,7 @@ export type MatchDayGroup = {
 export function groupMatchesByDay(matches: Match[]): MatchDayGroup[] {
   const groups = new Map<number, Match[]>();
   for (const m of matches) {
-    const d = m.day != null && m.day > 0 ? m.day : 0;
+    const d = resolveMatchDay(m) ?? 0;
     const list = groups.get(d) ?? [];
     list.push(m);
     groups.set(d, list);

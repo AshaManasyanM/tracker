@@ -16,7 +16,7 @@ import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
 import { saveTournamentRow, fetchTournamentById } from "../lib/tournamentDb";
-import { buildMatchLabelFromMeta } from "../lib/matchDisplay";
+import { buildMatchLabelFromMeta, compactMatchDays } from "../lib/matchDisplay";
 import {
   appendMatch,
   createEmptyTournament,
@@ -209,7 +209,7 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     }
     case "removeMatch": {
       if (state.matches.length <= 1) return state;
-      const matches = state.matches.filter((m) => m.id !== action.matchId);
+      const matches = compactMatchDays(state.matches.filter((m) => m.id !== action.matchId));
       let activeMatchId = state.activeMatchId;
       if (activeMatchId === action.matchId) {
         activeMatchId = matches[0]?.id ?? null;

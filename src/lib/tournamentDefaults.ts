@@ -1,5 +1,5 @@
 import type { Match, Team, Tournament } from "../types/tournament";
-import { buildMatchLabelFromMeta, nextMatchDay } from "./matchDisplay";
+import { buildMatchLabelFromMeta, compactMatchDays, nextMatchDay } from "./matchDisplay";
 import { newId } from "./id";
 import { normalizeMatchTeamResult } from "./matchResultKills";
 
@@ -80,5 +80,5 @@ export function ensureAllMatchesShape(
   matches: Match[],
   teams: Team[],
 ): Match[] {
-  return matches.map((m) => ensureMatchResultsShape(m, teams));
+  return compactMatchDays(matches.map((m) => ensureMatchResultsShape(m, teams)));
 }

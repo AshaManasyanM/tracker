@@ -1,4 +1,5 @@
 import type { Match, Team } from "../types/tournament";
+import { resolveMatchDay } from "./matchDisplay";
 import { matchPointsForTeam } from "./scoring";
 import { effectiveTeamKills } from "./matchResultKills";
 
@@ -28,6 +29,20 @@ function compareStandings(a: TeamStanding, b: TeamStanding): number {
   if (b.totalKills !== a.totalKills) return b.totalKills - a.totalKills;
   if (a.bestPlacement !== b.bestPlacement) return a.bestPlacement - b.bestPlacement;
   return b.chickenDinners - a.chickenDinners;
+}
+
+export function matchesForDay(matches: Match[], day: number): Match[] {
+  const d = Math.max(1, Math.floor(day));
+  return matches.filter((m) => resolveMatchDay(m) === d);
+}
+
+/** Matches from day 1 through `throughDay` (cumulative — Day 1 + Day 2, etc.). */
+export function matchesThroughDay(matches: Match[], throughDay: number): Match[] {
+  const end = Math.max(1, Math.floor(throughDay));
+  return matches.filter((m) => {
+    const d = resolveMatchDay(m);
+    return d != null && d <= end;
+  });
 }
 
 export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[] {
