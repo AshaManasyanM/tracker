@@ -139,12 +139,12 @@ function StandingsTable({
   dense: boolean;
 }) {
   const rowPadY = dense ? 5 : 6;
-  const headPy = dense ? 11 : 13;
-  const headFontPx = dense ? 10 : 11;
+  const headPy = dense ? 12 : 14;
+  const headFontPx = dense ? 12 : 13;
   const bodyNumberFontPx = 26;
   const totalFontPx = dense ? 19 : 22;
   const teamLogoPx = dense ? 52 : 58;
-  const teamNamePx = dense ? 16 : 18;
+  const teamNamePx = dense ? 18 : 20;
   const rankColW = 66;
   const rankCellPadRight = 22;
   const teamCellPadLeft = 12;

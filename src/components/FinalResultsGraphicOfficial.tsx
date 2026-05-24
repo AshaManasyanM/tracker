@@ -1,4 +1,4 @@
-import { forwardRef } from "react";
+import { forwardRef, type CSSProperties } from "react";
 import { formatStandingRank, type TeamStanding } from "../lib/standings";
 import {
   GRAPHIC_OFFICIAL_BG,
@@ -52,18 +52,25 @@ function OfficialResultsColumn({
   portrait?: boolean;
 }) {
   const rowPadY = portrait ? (dense ? 6 : 7) : dense ? 6 : 8;
-  const headPy = portrait ? (dense ? 10 : 12) : dense ? 10 : 14;
-  const headFontPx = portrait ? (dense ? 12 : 13) : dense ? 11 : 14;
-  const statFontPx = portrait ? (dense ? 17 : 19) : dense ? 16 : 18;
+  const headPy = portrait ? (dense ? 11 : 13) : dense ? 11 : 15;
+  const headFontPx = portrait ? (dense ? 14 : 15) : dense ? 13 : 16;
+  const bodyNumberFontPx = 26;
+  const totalFontPx = dense ? 19 : 22;
   const teamLogoPx = portrait ? (dense ? 36 : 40) : dense ? 36 : 40;
-  const teamNamePx = portrait ? (dense ? 16 : 18) : dense ? 16 : 18;
-  const rankFontPx = portrait ? (dense ? 22 : 24) : dense ? 22 : 24;
+  const teamNamePx = portrait ? (dense ? 18 : 20) : dense ? 18 : 20;
   const rowHeight = Math.max(
-    portrait ? (dense ? 46 : 50) : dense ? 48 : 52,
+    portrait ? (dense ? 50 : 54) : dense ? 52 : 56,
     teamLogoPx + rowPadY * 2 + 4,
   );
   const cellMiddle = { verticalAlign: "middle" as const };
   const statCell = { ...cellMiddle, whiteSpace: "nowrap" as const };
+  const numberFontBase: CSSProperties = {
+    fontFamily: FONT_DISPLAY,
+    fontWeight: 500,
+    letterSpacing: "0.02em",
+    lineHeight: 1,
+    fontFeatureSettings: '"tnum" 1',
+  };
   const headTh = {
     fontFamily: FONT_DISPLAY,
     color: HEAD_TEXT,
@@ -84,21 +91,21 @@ function OfficialResultsColumn({
         <colgroup>
           {portrait ? (
             <>
-              <col style={{ width: 52 }} />
+              <col style={{ width: 66 }} />
               <col />
-              <col style={{ width: 64 }} />
-              <col style={{ width: 64 }} />
-              <col style={{ width: 96 }} />
-              <col style={{ width: 96 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 104 }} />
+              <col style={{ width: 104 }} />
             </>
           ) : (
             <>
-              <col style={{ width: 56 }} />
+              <col style={{ width: 66 }} />
               <col />
-              <col style={{ width: 76 }} />
-              <col style={{ width: 76 }} />
-              <col style={{ width: 100 }} />
-              <col style={{ width: 100 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 110 }} />
+              <col style={{ width: 110 }} />
             </>
           )}
         </colgroup>
@@ -170,10 +177,8 @@ function OfficialResultsColumn({
                   <span
                     style={{
                       display: "inline-block",
-                      fontFamily: FONT_DISPLAY,
-                      fontSize: rankFontPx,
-                      fontWeight: 700,
-                      lineHeight: 1,
+                      ...numberFontBase,
+                      fontSize: bodyNumberFontPx,
                       color: r.matchesPlayed === 0 ? TEXT_DIM : GRAPHIC_OFFICIAL_GOLD,
                     }}
                   >
@@ -200,10 +205,10 @@ function OfficialResultsColumn({
                   />
                 </td>
                 <td
-                  className="px-2 text-center font-mono"
+                  className="px-2 text-center"
                   style={{
-                    fontFamily: FONT_BOARD,
-                    fontSize: statFontPx,
+                    ...numberFontBase,
+                    fontSize: bodyNumberFontPx,
                     color: GRAPHIC_OFFICIAL_GOLD,
                     ...statCell,
                     paddingTop: rowPadY,
@@ -213,10 +218,10 @@ function OfficialResultsColumn({
                   {r.chickenDinners}
                 </td>
                 <td
-                  className="px-2 text-center font-mono font-semibold"
+                  className="px-2 text-center"
                   style={{
-                    fontFamily: FONT_BOARD,
-                    fontSize: statFontPx,
+                    ...numberFontBase,
+                    fontSize: bodyNumberFontPx,
                     color: GRAPHIC_OFFICIAL_GOLD,
                     ...statCell,
                     paddingTop: rowPadY,
@@ -226,10 +231,10 @@ function OfficialResultsColumn({
                   {r.totalKills}
                 </td>
                 <td
-                  className="px-2 text-center font-mono"
+                  className="px-2 text-center"
                   style={{
-                    fontFamily: FONT_BOARD,
-                    fontSize: statFontPx,
+                    ...numberFontBase,
+                    fontSize: bodyNumberFontPx,
                     color: GRAPHIC_OFFICIAL_GOLD,
                     ...statCell,
                     paddingTop: rowPadY,
@@ -239,11 +244,14 @@ function OfficialResultsColumn({
                   {r.totalPlacementPoints}
                 </td>
                 <td
-                  className="px-2 text-center font-mono font-bold"
+                  className="px-2 text-center"
                   style={{
-                    fontFamily: FONT_BOARD,
-                    fontSize: statFontPx,
+                    ...numberFontBase,
+                    fontSize: totalFontPx,
                     color: hasStandingsData(r) ? GRAPHIC_OFFICIAL_GOLD : TEXT_DIM,
+                    textShadow: hasStandingsData(r)
+                      ? `0 0 14px rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.45)`
+                      : undefined,
                     ...statCell,
                     paddingTop: rowPadY,
                     paddingBottom: rowPadY,
