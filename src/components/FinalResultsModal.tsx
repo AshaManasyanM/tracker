@@ -12,54 +12,53 @@ import { computeStandings } from "../lib/standings";
 import {
   captureVisibleGraphic,
   downloadPngBlob,
+  measureGraphicExportHeight,
   slugifyFilename,
 } from "../lib/graphicCapture";
-import { GRAPHIC_OFFICIAL_BG } from "../lib/graphicTheme";
-import { FinalResultsGraphic } from "./FinalResultsGraphic";
+import {
+  FINAL_STAGE_EXPORT_MAX_H,
+  GRAPHIC_OFFICIAL_BG,
+  RESULTS_EXPORT_MAX_H,
+  RESULTS_EXPORT_W,
+} from "../lib/graphicTheme";
+import { standingsGraphicMeta } from "../lib/standingsGraphicMeta";
 import { FinalResultsGraphicOfficial } from "./FinalResultsGraphicOfficial";
+import { FinalStageGraphic } from "./FinalStageGraphic";
 
-/** Header label on the branded PNG (display only) */
-const GRAPHIC_LABEL_DAY = 2;
-
-const EXPORT_W = 1920;
-const EXPORT_MIN_H = 1080;
 const PREVIEW_SCALE = 0.42;
 const PREVIEW_GAP_PX = 40;
 
-type GraphicVariant = "branded" | "official";
+type GraphicVariant = "final" | "official";
 
 function GraphicPreview({
   label,
+  contentHeight,
   previewInnerRef,
   children,
 }: {
   label: string;
+  contentHeight: number;
   previewInnerRef: React.RefObject<HTMLDivElement | null>;
   children: React.ReactNode;
 }) {
-  const previewW = EXPORT_W * PREVIEW_SCALE;
-  const previewH = EXPORT_MIN_H * PREVIEW_SCALE;
+  const previewW = RESULTS_EXPORT_W * PREVIEW_SCALE;
+  const previewH = contentHeight * PREVIEW_SCALE;
 
   return (
     <div>
       <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
       <div className="overflow-hidden rounded-lg border border-white/10 bg-black">
-        <div className="w-full overflow-x-auto overscroll-x-contain py-1 [-webkit-overflow-scrolling:touch]">
+        <div className="mx-auto py-1" style={{ width: previewW + 8, height: previewH + 8 }}>
           <div
-            className="mx-auto max-h-[min(55dvh,520px)] overflow-y-auto sm:max-h-[min(60vh,560px)]"
-            style={{ width: previewW + 8 }}
+            className="relative mx-auto overflow-hidden"
+            style={{ width: previewW, height: previewH }}
           >
             <div
-              className="relative mx-auto overflow-hidden"
-              style={{ width: previewW, minHeight: previewH }}
+              ref={previewInnerRef}
+              className="absolute left-0 top-0 origin-top-left"
+              style={{ width: RESULTS_EXPORT_W, transform: `scale(${PREVIEW_SCALE})` }}
             >
-              <div
-                ref={previewInnerRef}
-                className="absolute left-0 top-0 origin-top-left"
-                style={{ width: EXPORT_W, transform: `scale(${PREVIEW_SCALE})` }}
-              >
-                {children}
-              </div>
+              {children}
             </div>
           </div>
         </div>
@@ -77,34 +76,50 @@ export function FinalResultsModal({
   onClose: () => void;
   tournament: Tournament;
 }) {
-  const brandedRef = useRef<HTMLDivElement>(null);
+  const finalRef = useRef<HTMLDivElement>(null);
   const officialRef = useRef<HTMLDivElement>(null);
-  const brandedPreviewInnerRef = useRef<HTMLDivElement>(null);
+  const finalPreviewInnerRef = useRef<HTMLDivElement>(null);
   const officialPreviewInnerRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState<GraphicVariant | null>(null);
+  const [finalHeight, setFinalHeight] = useState(RESULTS_EXPORT_MAX_H);
+  const [officialHeight, setOfficialHeight] = useState(RESULTS_EXPORT_MAX_H);
+  const rows = useMemo(
+    () => computeStandings(tournament.teams, tournament.matches),
+    [tournament.teams, tournament.matches],
+  );
 
-  const graphicProps = useMemo(() => {
-    const rows = computeStandings(tournament.teams, tournament.matches);
+  const finalStageProps = useMemo(() => {
+    const meta = standingsGraphicMeta(tournament.matches);
     return {
       tournamentName: tournament.name,
       rows,
-      day: GRAPHIC_LABEL_DAY,
+      matchCurrent: meta.matchCurrent,
+      matchTotal: meta.matchTotal,
     };
-  }, [tournament]);
+  }, [tournament.name, tournament.matches, rows]);
+
+  const officialProps = useMemo(() => {
+    const meta = standingsGraphicMeta(tournament.matches);
+    return {
+      tournamentName: tournament.name,
+      rows,
+      matchCurrent: meta.matchCurrent,
+      matchTotal: meta.matchTotal,
+    };
+  }, [tournament.name, tournament.matches, rows]);
 
   useLayoutEffect(() => {
     if (!open) return;
-    const update = () => {
-      /* previews use min-height; scroll handles overflow */
+    const measure = () => {
+      setFinalHeight(measureGraphicExportHeight(finalRef.current, FINAL_STAGE_EXPORT_MAX_H));
+      setOfficialHeight(measureGraphicExportHeight(officialRef.current, RESULTS_EXPORT_MAX_H));
     };
-    update();
-    const nodes = [brandedPreviewInnerRef.current, officialPreviewInnerRef.current].filter(
-      Boolean,
-    ) as HTMLElement[];
-    const ro = new ResizeObserver(update);
+    measure();
+    const nodes = [finalRef.current, officialRef.current].filter(Boolean) as HTMLElement[];
+    const ro = new ResizeObserver(measure);
     for (const n of nodes) ro.observe(n);
     return () => ro.disconnect();
-  }, [open, tournament]);
+  }, [open, tournament, finalStageProps, officialProps]);
 
   useEffect(() => {
     if (!open) return;
@@ -126,19 +141,17 @@ export function FinalResultsModal({
 
   const downloadPng = useCallback(
     async (variant: GraphicVariant) => {
-      const el = variant === "branded" ? brandedRef.current : officialRef.current;
+      const el = variant === "final" ? finalRef.current : officialRef.current;
       if (!el) return;
       setDownloading(variant);
       try {
-        const exportH = Math.max(EXPORT_MIN_H, el.offsetHeight);
         const bg = variant === "official" ? GRAPHIC_OFFICIAL_BG : undefined;
-        const blob = await captureVisibleGraphic(el, EXPORT_W, exportH, bg);
+        const maxH = variant === "final" ? FINAL_STAGE_EXPORT_MAX_H : RESULTS_EXPORT_MAX_H;
+        const exportH = measureGraphicExportHeight(el, maxH);
+        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH, bg, 1);
         const stamp = new Date().toISOString().slice(0, 10);
-        const base = slugifyFilename(tournament.name) || "group_stage";
-        const suffix =
-          variant === "branded"
-            ? `group_stage_day${GRAPHIC_LABEL_DAY}`
-            : "group_stage_official";
+        const base = slugifyFilename(tournament.name) || "standings";
+        const suffix = variant === "final" ? "final_stage" : "group_stage_official";
         downloadPngBlob(blob, `${base}_${suffix}_${stamp}.png`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
@@ -158,7 +171,7 @@ export function FinalResultsModal({
       className="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 p-0 backdrop-blur-md sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
-      aria-label="Group stage results graphic"
+      aria-label="Standings graphics"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -170,20 +183,20 @@ export function FinalResultsModal({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-xl font-bold tracking-wide text-[#E6C15A]">
-              Group stage results graphic
+              Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              Two styles · same Live standings data · 1920px wide PNGs
+              Final stage premium · official broadcast · 1080px wide
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               disabled={busy}
-              onClick={() => void downloadPng("branded")}
+              onClick={() => void downloadPng("final")}
               className="rounded-lg border border-[#c9a227]/50 bg-gradient-to-b from-[#3a3018] to-[#1a150a] px-4 py-2.5 text-sm font-semibold text-[#fff3cc] shadow-[0_0_24px_rgba(201,162,39,0.25)] hover:from-[#4a3f22] hover:to-[#221c0e] disabled:cursor-wait disabled:opacity-60"
             >
-              {downloading === "branded" ? "Rendering…" : "Download branded"}
+              {downloading === "final" ? "Rendering…" : "Download final stage"}
             </button>
             <button
               type="button"
@@ -204,15 +217,20 @@ export function FinalResultsModal({
         </div>
 
         <div className="flex flex-col" style={{ gap: PREVIEW_GAP_PX }}>
-          <GraphicPreview label="Branded — logo & Day 2" previewInnerRef={brandedPreviewInnerRef}>
-            <FinalResultsGraphic ref={brandedRef} {...graphicProps} />
+          <GraphicPreview
+            label="Final stage — premium standings"
+            contentHeight={finalHeight}
+            previewInnerRef={finalPreviewInnerRef}
+          >
+            <FinalStageGraphic ref={finalRef} {...finalStageProps} />
           </GraphicPreview>
 
           <GraphicPreview
             label="Official standings — broadcast style"
+            contentHeight={officialHeight}
             previewInnerRef={officialPreviewInnerRef}
           >
-            <FinalResultsGraphicOfficial ref={officialRef} {...graphicProps} />
+            <FinalResultsGraphicOfficial ref={officialRef} {...officialProps} />
           </GraphicPreview>
         </div>
       </div>

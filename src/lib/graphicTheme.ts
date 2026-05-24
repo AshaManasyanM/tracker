@@ -1,3 +1,9 @@
+/** Group stage results PNG width; height fits content up to max. */
+export const RESULTS_EXPORT_W = 1080;
+export const RESULTS_EXPORT_MAX_H = 1350;
+/** Final stage standings (tall header + 16+ rows) needs a higher cap. */
+export const FINAL_STAGE_EXPORT_MAX_H = 2400;
+
 /** Shared palette for PNG export graphics (solid colors export reliably). */
 export const GRAPHIC_BG = "#05070c";
 export const GRAPHIC_GOLD = "#FFC107";

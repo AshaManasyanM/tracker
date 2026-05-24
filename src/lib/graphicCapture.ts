@@ -62,6 +62,7 @@ export async function captureVisibleGraphic(
   width: number,
   height: number,
   backgroundColor: string = GRAPHIC_BG,
+  pixelRatio: number = EXPORT_PIXEL_RATIO,
 ): Promise<Blob> {
   const patches: StylePatch[] = [];
   const scaled = findScaledWrapper(root);
@@ -112,7 +113,7 @@ export async function captureVisibleGraphic(
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
   try {
-    return await captureElementToPngBlob(root, width, height, backgroundColor);
+    return await captureElementToPngBlob(root, width, height, backgroundColor, pixelRatio);
   } finally {
     for (let i = patches.length - 1; i >= 0; i--) {
       revertStylePatch(patches[i]!);
@@ -130,6 +131,7 @@ export async function captureElementToPngBlob(
   width: number,
   height: number,
   backgroundColor: string = GRAPHIC_BG,
+  pixelRatio: number = EXPORT_PIXEL_RATIO,
 ): Promise<Blob> {
   if (document.fonts?.ready) {
     await document.fonts.ready;
@@ -138,12 +140,16 @@ export async function captureElementToPngBlob(
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
   const blob = await toBlob(el, {
-    pixelRatio: EXPORT_PIXEL_RATIO,
+    pixelRatio,
     backgroundColor,
     width,
     height,
     cacheBust: true,
     skipFonts: false,
+    // Keep team logos intact (data URLs + narrow table cells).
+    style: {
+      overflow: "visible",
+    },
   });
 
   if (!blob) {
@@ -163,4 +169,17 @@ export function downloadPngBlob(blob: Blob, filename: string): void {
 
 export function slugifyFilename(name: string): string {
   return name.replace(/[^\w\-]+/g, "_").replace(/_+/g, "_").replace(/^_|_$/g, "").slice(0, 48);
+}
+
+/** Full rendered height for PNG export (not clipped by preview max-height). */
+export function measureGraphicExportHeight(
+  el: HTMLElement | null,
+  maxHeight: number,
+): number {
+  if (!el) return maxHeight;
+  const h = Math.ceil(
+    Math.max(el.offsetHeight, el.scrollHeight, el.getBoundingClientRect().height),
+  );
+  // Small buffer avoids subpixel crop on footer / last row.
+  return Math.min(maxHeight, Math.max(1, h + 4));
 }

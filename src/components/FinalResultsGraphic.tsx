@@ -7,6 +7,7 @@ import {
   GRAPHIC_GOLD_RGB,
   GRAPHIC_TEXT,
   GRAPHIC_TEXT_MUTED,
+  RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { GraphicTeamRow } from "./GraphicTeamRow";
 
@@ -15,6 +16,8 @@ export type FinalResultsGraphicProps = {
   rows: TeamStanding[];
   /** Competition day shown on the graphic (e.g. 1 → "Day 1"). */
   day: number;
+  matchCurrent: number;
+  matchTotal: number;
 };
 
 const FONT_BOARD = "'Rajdhani', system-ui, sans-serif";
@@ -29,7 +32,6 @@ const ROW_ACTIVE = `rgba(${GRAPHIC_GOLD_RGB}, 0.14)`;
 const ROW_ACTIVE_LEADER = `rgba(${GRAPHIC_GOLD_RGB}, 0.24)`;
 const ROW_EMPTY_EVEN = `rgba(${GRAPHIC_GOLD_RGB}, 0.03)`;
 const ROW_EMPTY_ODD = `rgba(255, 255, 255, 0.015)`;
-const COLUMN_DIVIDER = `rgba(${GRAPHIC_GOLD_RGB}, 0.28)`;
 
 function hasStandingsData(s: TeamStanding): boolean {
   return s.matchesPlayed > 0 || s.totalPoints > 0;
@@ -47,15 +49,27 @@ function rankColor(s: TeamStanding): string {
   return GRAPHIC_GOLD;
 }
 
-function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }) {
-  const rowPadY = dense ? 5 : 6;
-  const headPy = dense ? 8 : 10;
-  const headFontPx = dense ? 10 : 11;
-  const statFontPx = dense ? 15 : 17;
-  const teamLogoPx = dense ? 34 : 38;
-  const teamNamePx = dense ? 15 : 16;
-  const rankFontPx = dense ? 20 : 24;
-  const rowHeight = dense ? 44 : 48;
+function ResultsColumn({
+  rows,
+  dense,
+  portrait = false,
+}: {
+  rows: TeamStanding[];
+  dense: boolean;
+  portrait?: boolean;
+}) {
+  const rowPadY = portrait ? (dense ? 5 : 6) : dense ? 5 : 6;
+  const headPy = portrait ? (dense ? 9 : 10) : dense ? 8 : 10;
+  const headFontPx = portrait ? (dense ? 11 : 12) : dense ? 10 : 11;
+  const statFontPx = portrait ? (dense ? 16 : 18) : dense ? 15 : 17;
+  const teamLogoPx = portrait ? (dense ? 34 : 38) : dense ? 34 : 38;
+  const teamNamePx = portrait ? (dense ? 15 : 17) : dense ? 15 : 16;
+  const rankFontPx = portrait ? (dense ? 20 : 22) : dense ? 20 : 24;
+  const rowHeight = Math.max(
+    portrait ? (dense ? 44 : 48) : dense ? 44 : 48,
+    teamLogoPx + rowPadY * 2 + 4,
+  );
+  const placeHeadFontPx = portrait ? (dense ? 10 : 11) : dense ? 9 : 10;
   const cellMiddle = { verticalAlign: "middle" as const };
   const statCell = { ...cellMiddle, whiteSpace: "nowrap" as const };
   const headTh = {
@@ -73,13 +87,27 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
         style={{ tableLayout: "fixed", width: "100%" }}
       >
         <colgroup>
-          <col style={{ width: 44 }} />
-          <col />
-          <col style={{ width: 50 }} />
-          <col style={{ width: 86 }} />
-          <col style={{ width: 62 }} />
-          <col style={{ width: 70 }} />
-          <col style={{ width: 76 }} />
+          {portrait ? (
+            <>
+              <col style={{ width: 48 }} />
+              <col />
+              <col style={{ width: 52 }} />
+              <col style={{ width: 80 }} />
+              <col style={{ width: 64 }} />
+              <col style={{ width: 72 }} />
+              <col style={{ width: 76 }} />
+            </>
+          ) : (
+            <>
+              <col style={{ width: 44 }} />
+              <col />
+              <col style={{ width: 50 }} />
+              <col style={{ width: 86 }} />
+              <col style={{ width: 62 }} />
+              <col style={{ width: 70 }} />
+              <col style={{ width: 76 }} />
+            </>
+          )}
         </colgroup>
         <thead>
           <tr
@@ -114,7 +142,7 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
               style={{
                 ...headTh,
                 whiteSpace: "normal",
-                fontSize: dense ? 9 : 10,
+                fontSize: placeHeadFontPx,
                 letterSpacing: "0.08em",
                 lineHeight: 1.15,
                 paddingTop: headPy,
@@ -137,7 +165,7 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
               style={{
                 ...headTh,
                 whiteSpace: "normal",
-                fontSize: dense ? 9 : 10,
+                fontSize: placeHeadFontPx,
                 lineHeight: 1.15,
                 paddingTop: headPy,
                 paddingBottom: headPy,
@@ -151,7 +179,7 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
               style={{
                 ...headTh,
                 whiteSpace: "normal",
-                fontSize: dense ? 9 : 10,
+                fontSize: placeHeadFontPx,
                 lineHeight: 1.15,
                 paddingTop: headPy,
                 paddingBottom: headPy,
@@ -205,11 +233,13 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
                   </span>
                 </td>
                 <td
-                  className="min-w-0 pl-3 pr-2 text-left"
+                  className="pl-2 pr-1 text-left"
                   style={{
                     ...cellMiddle,
                     paddingTop: rowPadY,
                     paddingBottom: rowPadY,
+                    overflow: "hidden",
+                    maxWidth: 0,
                   }}
                 >
                   <GraphicTeamRow
@@ -218,7 +248,6 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
                     logoPx={teamLogoPx}
                     nameFontSize={teamNamePx}
                     gapPx={dense ? 8 : 10}
-                    maxNameWidth={360}
                   />
                 </td>
                 <td
@@ -297,20 +326,22 @@ function ResultsColumn({ rows, dense }: { rows: TeamStanding[]; dense: boolean }
 
 const HEADER_LOGO_H = 160;
 
-function HeaderBrandLogo() {
+function HeaderBrandLogo({ compact = false }: { compact?: boolean }) {
+  const maxW = compact ? 150 : 300;
+  const h = compact ? 56 : HEADER_LOGO_H;
   return (
     <img
       src={ALPHA7_LOGO_URL}
       alt=""
-      width={280}
-      height={HEADER_LOGO_H}
+      width={maxW}
+      height={h}
       loading="eager"
       decoding="sync"
       style={{
         display: "block",
-        height: HEADER_LOGO_H,
+        height: h,
         width: "auto",
-        maxWidth: 300,
+        maxWidth: maxW,
         objectFit: "contain",
         backgroundColor: "transparent",
       }}
@@ -318,22 +349,22 @@ function HeaderBrandLogo() {
   );
 }
 
+const PORTRAIT = RESULTS_EXPORT_W <= 1080;
+const SIDE_PAD = PORTRAIT ? 36 : 56;
+
 export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphicProps>(
-  function FinalResultsGraphic({ tournamentName, rows, day }, ref) {
+  function FinalResultsGraphic({ tournamentName, rows, day, matchCurrent, matchTotal }, ref) {
     const dayNum = Math.max(1, Math.floor(day));
-    const mid = rows.length === 0 ? 0 : Math.ceil(rows.length / 2);
-    const leftRows = rows.slice(0, mid);
-    const rightRows = rows.slice(mid);
-    const maxColLen = Math.max(leftRows.length, rightRows.length, 1);
-    const dense = maxColLen > 9;
+    const dense = rows.length > (PORTRAIT ? 16 : 12);
 
     return (
       <div
         ref={ref}
         data-graphic-capture
         lang="en"
-        className="relative box-border w-[1920px] min-h-[1080px] shrink-0 overflow-hidden font-board antialiased"
+        className="relative box-border shrink-0 overflow-visible font-board antialiased"
         style={{
+          width: RESULTS_EXPORT_W,
           fontFeatureSettings: '"tnum" 1',
           lineHeight: "normal",
           color: GRAPHIC_TEXT,
@@ -353,11 +384,15 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
           }}
         />
         <div
-          className="relative z-10 flex min-h-[1080px] flex-col pb-10 pt-12"
-          style={{ paddingLeft: 56, paddingRight: 56 }}
+          className="relative z-10 flex flex-col pb-8 pt-10"
+          style={{
+            paddingLeft: SIDE_PAD,
+            paddingRight: SIDE_PAD,
+            boxSizing: "border-box",
+          }}
         >
           <header
-            className="shrink-0 pb-8"
+            className="shrink-0 pb-6"
             style={{ borderBottom: `2px solid rgba(${GRAPHIC_GOLD_RGB}, 0.35)` }}
           >
             <p
@@ -393,7 +428,7 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
                     style={{
                       margin: 0,
                       fontFamily: FONT_DISPLAY,
-                      fontSize: 88,
+                      fontSize: PORTRAIT ? 52 : 88,
                       fontWeight: 700,
                       lineHeight: 0.95,
                       letterSpacing: "0.05em",
@@ -401,13 +436,27 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
                       color: GRAPHIC_GOLD,
                     }}
                   >
-                    Group stage results
+                    Final results
                   </h1>
                   <p
                     style={{
-                      margin: "14px 0 0",
+                      margin: PORTRAIT ? "8px 0 0" : "10px 0 0",
                       fontFamily: FONT_DISPLAY,
-                      fontSize: 44,
+                      fontSize: PORTRAIT ? 15 : 18,
+                      fontWeight: 700,
+                      letterSpacing: "0.12em",
+                      textTransform: "uppercase",
+                      color: `rgba(${GRAPHIC_GOLD_RGB}, 0.82)`,
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    MATCH {matchCurrent}/{matchTotal}
+                  </p>
+                  <p
+                    style={{
+                      margin: PORTRAIT ? "6px 0 0" : "8px 0 0",
+                      fontFamily: FONT_DISPLAY,
+                      fontSize: PORTRAIT ? 28 : 44,
                       fontWeight: 600,
                       letterSpacing: "0.2em",
                       textTransform: "uppercase",
@@ -422,21 +471,21 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
                   style={{
                     display: "table-cell",
                     verticalAlign: "middle",
-                    width: 320,
+                    width: PORTRAIT ? 160 : 320,
                     textAlign: "right",
                     lineHeight: 0,
                   }}
                 >
-                  <HeaderBrandLogo />
+                  <HeaderBrandLogo compact={PORTRAIT} />
                 </div>
               </div>
             </div>
             <p
               style={{
-                margin: "16px 0 0",
-                maxWidth: 1200,
+                margin: "12px 0 0",
+                maxWidth: RESULTS_EXPORT_W - SIDE_PAD * 2,
                 fontFamily: FONT_BOARD,
-                fontSize: 30,
+                fontSize: PORTRAIT ? 22 : 30,
                 fontWeight: 600,
                 lineHeight: 1.25,
                 color: GRAPHIC_TEXT,
@@ -448,12 +497,12 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
             </p>
           </header>
 
-          <div className="mt-6 min-h-0 flex-1">
+          <div className="mt-4">
             <div
               style={{
                 border: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.25)`,
                 borderRadius: 8,
-                padding: "14px 16px 16px",
+                padding: PORTRAIT ? "10px 12px 12px" : "14px 16px 16px",
                 backgroundColor: TABLE_PANEL_BG,
                 boxShadow: `inset 0 1px 0 rgba(${GRAPHIC_GOLD_RGB}, 0.12), 0 12px 40px rgba(0,0,0,0.45)`,
               }}
@@ -471,47 +520,7 @@ export const FinalResultsGraphic = forwardRef<HTMLDivElement, FinalResultsGraphi
                   No teams in this tournament
                 </div>
               ) : (
-                <div
-                  style={{
-                    display: "table",
-                    width: "100%",
-                    tableLayout: "fixed",
-                    borderCollapse: "separate",
-                    borderSpacing: 0,
-                  }}
-                >
-                  <div style={{ display: "table-row" }}>
-                    <div
-                      style={{
-                        display: "table-cell",
-                        width: "50%",
-                        verticalAlign: "top",
-                        paddingRight: 18,
-                      }}
-                    >
-                      <ResultsColumn rows={leftRows} dense={dense} />
-                    </div>
-                    <div
-                      style={{
-                        display: "table-cell",
-                        width: 6,
-                        verticalAlign: "top",
-                        backgroundColor: COLUMN_DIVIDER,
-                      }}
-                      aria-hidden
-                    />
-                    <div
-                      style={{
-                        display: "table-cell",
-                        width: "50%",
-                        verticalAlign: "top",
-                        paddingLeft: 18,
-                      }}
-                    >
-                      <ResultsColumn rows={rightRows} dense={dense} />
-                    </div>
-                  </div>
-                </div>
+                <ResultsColumn rows={rows} dense={dense} portrait={PORTRAIT} />
               )}
             </div>
           </div>

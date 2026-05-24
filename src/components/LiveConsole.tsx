@@ -116,7 +116,7 @@ export function LiveConsole() {
               onClick={() => {
                 if (
                   !confirm(
-                    "Reset all placement, elims, and points for every match? Teams and match list stay as they are.",
+                    "Reset all placement, elims, and points for every match? Live standings and MVP boards clear too. Teams and match list stay as they are.",
                   )
                 )
                   return;

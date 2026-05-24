@@ -28,6 +28,27 @@ export function nextMatchDay(matches: Match[]): number {
   return Math.max(0, ...matches.map((m) => resolveMatchDay(m) ?? 0)) + 1;
 }
 
+/** Highest day in the schedule (group-stage graphic header). */
+export function latestMatchDay(matches: Match[]): number {
+  const days = matches
+    .map((m) => resolveMatchDay(m))
+    .filter((d): d is number => d != null && d > 0);
+  if (days.length === 0) return 1;
+  return Math.max(...days);
+}
+
+/** Highest day with at least one placement logged; falls back to `latestMatchDay`. */
+export function latestScoredMatchDay(matches: Match[]): number {
+  let max = 0;
+  for (const m of matches) {
+    const d = resolveMatchDay(m);
+    if (d == null || d <= 0) continue;
+    const scored = Object.values(m.results).some((r) => r != null && r.placement != null);
+    if (scored && d > max) max = d;
+  }
+  return max > 0 ? max : latestMatchDay(matches);
+}
+
 /** Renumber days 1…N after deletions so gaps disappear (e.g. only Day 2 left → Day 1). */
 export function compactMatchDays(matches: Match[]): Match[] {
   const usedDays = [

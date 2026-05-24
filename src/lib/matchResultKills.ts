@@ -1,7 +1,7 @@
 import type { MatchTeamResult, Team } from "../types/tournament";
 
 /** Max roster size per squad (lineup + bench). */
-export const MAX_PLAYERS_PER_TEAM = 6;
+export const MAX_PLAYERS_PER_TEAM = 9;
 
 /**
  * Team kills used for scoring: sum of roster elims when a roster exists, otherwise the legacy

@@ -10,6 +10,8 @@ export type PlayerStanding = {
   teamName: string;
   totalKills: number;
   matchesPlayed: number;
+  /** Team chicken dinners in scored matches this player appeared in */
+  chickenDinners: number;
 };
 
 export type DualMvp = {
@@ -53,6 +55,7 @@ export function computePlayerStandings(teams: Team[], matches: Match[]): PlayerS
         teamName: team.name,
         totalKills: 0,
         matchesPlayed: 0,
+        chickenDinners: 0,
       });
     }
   }
@@ -70,6 +73,7 @@ export function computePlayerStandings(teams: Team[], matches: Match[]): PlayerS
         const pk = r.playerKills?.[p.id] ?? 0;
         row.totalKills += Math.max(0, Math.floor(pk));
         row.matchesPlayed += 1;
+        if (r.placement === 1) row.chickenDinners += 1;
       }
     }
   }

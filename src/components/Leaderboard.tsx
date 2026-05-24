@@ -13,6 +13,7 @@ export function Leaderboard({
   compact?: boolean;
 }) {
   const rows = useMemo(() => computeStandings(teams, matches), [teams, matches]);
+  const noScoresYet = rows.length > 0 && rows.every((r) => r.matchesPlayed === 0);
 
   if (teams.length === 0) {
     return (
@@ -26,7 +27,9 @@ export function Leaderboard({
     <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
       <div className="flex items-center justify-between border-b border-line px-3 py-2 sm:px-4">
         <h2 className="text-sm font-semibold text-slate-100">Live standings</h2>
-        <span className="text-xs text-slate-500">{matches.length} matches</span>
+        <span className="text-xs text-slate-500">
+          {noScoresYet ? "No scores yet" : `${matches.length} matches`}
+        </span>
       </div>
       <div className="overflow-x-auto overscroll-x-contain [-webkit-overflow-scrolling:touch]">
         <table className="w-full min-w-[min(100%,400px)] border-collapse text-left text-sm sm:min-w-[540px]">
@@ -76,21 +79,21 @@ export function Leaderboard({
                   </div>
                 </td>
                 <td className="align-middle py-2 px-2 text-center font-mono tabular-nums text-accent-glow sm:px-3">
-                  {r.totalPoints}
+                  {r.matchesPlayed === 0 ? "–" : r.totalPoints}
                 </td>
                 {!compact && (
                   <>
                     <td className="hidden align-middle py-2 px-2 text-center font-mono tabular-nums text-slate-300 sm:table-cell sm:px-3">
-                      {r.totalPlacementPoints}
+                      {r.matchesPlayed === 0 ? "–" : r.totalPlacementPoints}
                     </td>
                     <td className="align-middle py-2 px-2 text-center font-mono tabular-nums text-slate-200 sm:px-3">
-                      {r.totalKills}
+                      {r.matchesPlayed === 0 ? "–" : r.totalKills}
                     </td>
                     <td className="hidden align-middle py-2 px-2 text-center font-mono text-slate-400 md:table-cell md:px-3">
-                      {r.matchesPlayed}
+                      {r.matchesPlayed === 0 ? "–" : r.matchesPlayed}
                     </td>
                     <td className="hidden align-middle py-2 px-2 text-center font-mono text-warn/90 lg:table-cell lg:px-3">
-                      {r.chickenDinners}
+                      {r.matchesPlayed === 0 ? "–" : r.chickenDinners}
                     </td>
                   </>
                 )}

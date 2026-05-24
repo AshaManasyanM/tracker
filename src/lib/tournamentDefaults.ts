@@ -3,6 +3,7 @@ import { buildMatchLabelFromMeta, compactMatchDays, nextMatchDay } from "./match
 import { newId } from "./id";
 import { normalizeMatchTeamResult } from "./matchResultKills";
 
+/** Empty scores for one match — call per match (do not reuse the same object across matches). */
 export function emptyResultsForTeams(teams: Team[]): Match["results"] {
   const results: Match["results"] = {};
   for (const t of teams) {

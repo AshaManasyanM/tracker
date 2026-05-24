@@ -240,14 +240,17 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     case "setActiveMatch":
       return touch({ ...state, activeMatchId: action.matchId });
     case "clearAllScores": {
-      const empty = emptyResultsForTeams(state.teams);
-      const matches = state.matches.map((m) => ({ ...m, results: { ...empty } }));
+      const matches = state.matches.map((m) => ({
+        ...m,
+        results: emptyResultsForTeams(state.teams),
+      }));
       return touch({ ...state, matches });
     }
     case "clearMatchScores": {
-      const empty = emptyResultsForTeams(state.teams);
       const matches = state.matches.map((m) =>
-        m.id === action.matchId ? { ...m, results: { ...empty } } : m,
+        m.id === action.matchId
+          ? { ...m, results: emptyResultsForTeams(state.teams) }
+          : m,
       );
       return touch({ ...state, matches });
     }

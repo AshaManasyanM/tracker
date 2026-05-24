@@ -83,7 +83,7 @@ export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[
   for (let i = 0; i < rows.length; i++) {
     const cur = rows[i]!;
     if (cur.matchesPlayed === 0) {
-      cur.rank = 0;
+      cur.rank = i + 1;
       continue;
     }
     let strictlyBetter = 0;
@@ -97,9 +97,9 @@ export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[
   return rows;
 }
 
-/** Rank label for UI — unplayed squads show - instead of sharing a numeric place. */
+/** Rank label for UI (1–N in standings order). */
 export function formatStandingRank(row: TeamStanding): string {
-  return row.matchesPlayed === 0 ? "-" : String(row.rank);
+  return row.rank > 0 ? String(row.rank) : "–";
 }
 
 /** Returns teamIds that share the same placement value within a match (data issues). */

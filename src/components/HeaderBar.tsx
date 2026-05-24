@@ -210,7 +210,7 @@ export function HeaderBar() {
             onClick={() => setFinalOpen(true)}
           >
             <span className="sm:hidden">Graphic</span>
-            <span className="hidden sm:inline">Group stage graphic</span>
+            <span className="hidden sm:inline">Standings graphic</span>
           </button>
           <MvpGraphicsControls
             teams={tournament.teams}
