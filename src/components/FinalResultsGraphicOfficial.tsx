@@ -4,6 +4,7 @@ import {
   GRAPHIC_OFFICIAL_BG,
   GRAPHIC_OFFICIAL_GOLD,
   GRAPHIC_OFFICIAL_GOLD_RGB,
+  RESULTS_BG_URL,
   RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { GraphicTeamRow } from "./GraphicTeamRow";
@@ -15,20 +16,18 @@ export type FinalResultsGraphicOfficialProps = {
   matchTotal: number;
 };
 
-const FONT_BOARD = "'Rajdhani', system-ui, sans-serif";
-const FONT_DISPLAY = "'Oswald', system-ui, sans-serif";
+const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
+const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
 const TEXT_DIM = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.45)`;
 const HEAD_TEXT = "rgba(220, 228, 240, 0.82)";
 const HEADER_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.2)`;
 const PANEL_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.22)`;
-const PANEL_BG = `linear-gradient(165deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.1) 0%, ${GRAPHIC_OFFICIAL_BG} 35%, ${GRAPHIC_OFFICIAL_BG} 100%)`;
+const PANEL_BG = `linear-gradient(165deg, rgba(7, 11, 20, 0.55) 0%, rgba(7, 11, 20, 0.72) 100%)`;
 const PANEL_SHADOW = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.15) 0px 1px 0px inset, rgba(0, 0, 0, 0.4) 0px 8px 32px`;
 const ROW_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.12)`;
-const ROW_GRADIENT_LEADER = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.34) 0%, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.14) 40%, ${GRAPHIC_OFFICIAL_BG} 100%)`;
-const ROW_GRADIENT = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.22) 0%, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.08) 45%, ${GRAPHIC_OFFICIAL_BG} 100%)`;
-
-const ROOT_BG_IMAGE = `linear-gradient(165deg, ${GRAPHIC_OFFICIAL_BG} 0%, ${GRAPHIC_OFFICIAL_BG} 100%), radial-gradient(80% 45% at 50% -8%, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.12), transparent 55%)`;
+const ROW_GRADIENT_LEADER = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.38) 0%, rgba(7, 11, 20, 0.35) 100%)`;
+const ROW_GRADIENT = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.16) 0%, rgba(7, 11, 20, 0.22) 100%)`;
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
 const SIDE_PAD = PORTRAIT ? 32 : 48;
@@ -74,12 +73,12 @@ function OfficialResultsColumn({
   const headTh = {
     fontFamily: FONT_DISPLAY,
     color: HEAD_TEXT,
-    backgroundColor: GRAPHIC_OFFICIAL_BG,
+    backgroundColor: "transparent",
     whiteSpace: "nowrap" as const,
     lineHeight: 1.1,
     fontWeight: 700 as const,
     textTransform: "uppercase" as const,
-    letterSpacing: "0.14em",
+    letterSpacing: "0.04em",
   };
 
   return (
@@ -93,19 +92,19 @@ function OfficialResultsColumn({
             <>
               <col style={{ width: 66 }} />
               <col />
-              <col style={{ width: 72 }} />
-              <col style={{ width: 72 }} />
-              <col style={{ width: 104 }} />
-              <col style={{ width: 104 }} />
+              <col style={{ width: 88 }} />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 88 }} />
+              <col style={{ width: 120 }} />
             </>
           ) : (
             <>
               <col style={{ width: 66 }} />
               <col />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 80 }} />
-              <col style={{ width: 110 }} />
-              <col style={{ width: 110 }} />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 104 }} />
+              <col style={{ width: 96 }} />
+              <col style={{ width: 128 }} />
             </>
           )}
         </colgroup>
@@ -121,31 +120,31 @@ function OfficialResultsColumn({
               className="pl-3 pr-2 text-left"
               style={{ ...headTh, fontSize: headFontPx, paddingTop: headPy, paddingBottom: headPy }}
             >
-              Team
+              Թիմ
             </th>
             <th
               className="px-2 text-center"
               style={{ ...headTh, fontSize: headFontPx, paddingTop: headPy, paddingBottom: headPy }}
             >
-              WW
+              Հաղթ
             </th>
             <th
               className="px-2 text-center"
               style={{ ...headTh, fontSize: headFontPx, paddingTop: headPy, paddingBottom: headPy }}
             >
-              Elims
+              Սպան.
             </th>
             <th
               className="px-2 text-center"
               style={{ ...headTh, fontSize: headFontPx, paddingTop: headPy, paddingBottom: headPy }}
             >
-              Place pts
+              Տեղ
             </th>
             <th
               className="px-2 text-center"
               style={{ ...headTh, fontSize: headFontPx, paddingTop: headPy, paddingBottom: headPy }}
             >
-              Total pts
+              Միավոր
             </th>
           </tr>
         </thead>
@@ -281,27 +280,38 @@ export const FinalResultsGraphicOfficial = forwardRef<
     <div
       ref={ref}
       data-graphic-capture
-      lang="en"
-      className="relative box-border shrink-0 overflow-visible font-board antialiased"
+      lang="hy"
+      className="relative box-border shrink-0 overflow-hidden font-board antialiased"
       style={{
         width: RESULTS_EXPORT_W,
         fontFeatureSettings: '"tnum" 1',
         lineHeight: "normal",
         color: GRAPHIC_OFFICIAL_GOLD,
         backgroundColor: GRAPHIC_OFFICIAL_BG,
-        backgroundImage: ROOT_BG_IMAGE,
         fontFamily: FONT_BOARD,
       }}
     >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          opacity: 0.28,
-          backgroundImage:
-            "linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
+      <img
+        src={RESULTS_BG_URL}
+        alt=""
         aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center 30%",
+        }}
+      />
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(5, 8, 16, 0.38) 0%, rgba(5, 8, 16, 0.62) 32%, rgba(5, 8, 16, 0.78) 100%)",
+        }}
       />
 
       <div
@@ -319,12 +329,11 @@ export const FinalResultsGraphicOfficial = forwardRef<
               fontFamily: FONT_DISPLAY,
               fontSize: 12,
               fontWeight: 600,
-              letterSpacing: "0.45em",
-              textTransform: "uppercase",
+              letterSpacing: "0.08em",
               color: GRAPHIC_OFFICIAL_GOLD,
             }}
           >
-            Official standings
+            Պաշտոնական աղյուսակ
           </p>
           <h1
             style={{
@@ -333,13 +342,12 @@ export const FinalResultsGraphicOfficial = forwardRef<
               fontSize: PORTRAIT ? 50 : 80,
               fontWeight: 700,
               lineHeight: 0.95,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
+              letterSpacing: "0.02em",
               color: GRAPHIC_OFFICIAL_GOLD,
               textShadow: `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.25) 0px 2px 20px`,
             }}
           >
-            Final results
+            Վերջնական արդյունքներ
           </h1>
           <p
             style={{
@@ -347,12 +355,11 @@ export const FinalResultsGraphicOfficial = forwardRef<
               fontFamily: FONT_DISPLAY,
               fontSize: PORTRAIT ? 14 : 16,
               fontWeight: 700,
-              letterSpacing: "0.12em",
-              textTransform: "uppercase",
+              letterSpacing: "0.06em",
               color: `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.82)`,
             }}
           >
-            MATCH {matchCurrent}/{matchTotal}
+            ԽԱՂ {matchCurrent}/{matchTotal}
           </p>
           <p
             style={{
@@ -367,7 +374,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
               overflowWrap: "anywhere",
             }}
           >
-            {tournamentName || "Tournament"}
+            {tournamentName || "Մրցաշար"}
           </p>
         </header>
 
@@ -391,7 +398,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
                   color: TEXT_DIM,
                 }}
               >
-                No teams in this tournament
+                Այս մրցաշարում թիմեր չկան
               </div>
             ) : (
               <OfficialResultsColumn rows={rows} dense={dense} portrait={PORTRAIT} />

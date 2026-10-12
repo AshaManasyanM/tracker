@@ -47,7 +47,7 @@ export function GraphicTeamRow({
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    fontFamily: "'Rajdhani', system-ui, sans-serif",
+    fontFamily: "'Rajdhani', 'Noto Sans Armenian', system-ui, sans-serif",
     fontSize: nameFontSize,
     fontWeight: 600,
     color: nameColor,
@@ -92,7 +92,7 @@ export function GraphicTeamRow({
         ) : (
           <span
             style={{
-              fontFamily: "'Rajdhani', system-ui, sans-serif",
+              fontFamily: "'Rajdhani', 'Noto Sans Armenian', system-ui, sans-serif",
               fontWeight: 600,
               fontSize: Math.round(logoPx * 0.35),
               color: "#94a3b8",

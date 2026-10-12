@@ -4,6 +4,7 @@ import {
   ALPHA7_LOGO_URL,
   GRAPHIC_GOLD_RGB,
   GRAPHIC_TEXT,
+  RESULTS_BG_URL,
   RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { GraphicTeamRow } from "./GraphicTeamRow";
@@ -16,17 +17,17 @@ export type FinalStageGraphicProps = {
   standingsSubtitle?: string;
 };
 
-const FONT_BOARD = "'Rajdhani', system-ui, sans-serif";
-const FONT_DISPLAY = "'Oswald', system-ui, sans-serif";
+const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
+const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
 const TOTAL_GOLD = "#FFF3C4";
 const PAGE_BG = "#03050a";
-const TABLE_BG = "rgba(5, 8, 16, 0.86)";
+const TABLE_BG = "rgba(5, 8, 16, 0.62)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
 const TABLE_WATERMARK_OPACITY = 0.09;
 const SIDE_PAD = PORTRAIT ? 28 : 40;
-const FOOTER_TEXT = "ALPHA SEVEN • FINAL STAGE • OVERALL STANDINGS";
+const FOOTER_TEXT = "Ալֆա Սեվեն • Եզրափակիչ փուլ • Ընդհանուր աղյուսակ";
 
 const HEAD_GRADIENT =
   "linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)";
@@ -48,24 +49,19 @@ function rowBackground(_s: TeamStanding, index: number): CSSProperties {
 }
 
 function BroadcastBackground() {
-  const noiseSvg = encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256">
-      <filter id="n"><feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/></filter>
-      <rect width="100%" height="100%" filter="url(#n)" opacity="0.35"/>
-    </svg>`,
-  );
   return (
     <>
-      <div
+      <img
+        src={RESULTS_BG_URL}
+        alt=""
         aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          backgroundImage: `url("data:image/svg+xml,${noiseSvg}")`,
-          backgroundSize: "180px 180px",
-          opacity: 0.08,
-          mixBlendMode: "soft-light",
-          pointerEvents: "none",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center 30%",
         }}
       />
       <div
@@ -73,23 +69,8 @@ function BroadcastBackground() {
         style={{
           position: "absolute",
           inset: 0,
-          opacity: 0.35,
-          backgroundImage: `repeating-linear-gradient(
-            125deg,
-            transparent,
-            transparent 48px,
-            rgba(255, 255, 255, 0.008) 48px,
-            rgba(255, 255, 255, 0.008) 49px
-          )`,
-          pointerEvents: "none",
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: PAGE_BG,
+          background:
+            "linear-gradient(180deg, rgba(5, 8, 16, 0.4) 0%, rgba(5, 8, 16, 0.68) 34%, rgba(5, 8, 16, 0.82) 100%)",
           pointerEvents: "none",
         }}
       />
@@ -167,7 +148,7 @@ function StandingsTable({
     whiteSpace: "nowrap",
     lineHeight: 1,
     fontWeight: 700,
-    letterSpacing: "0.16em",
+    letterSpacing: "0.04em",
     textTransform: "uppercase",
   };
 
@@ -305,11 +286,11 @@ function StandingsTable({
       <colgroup>
         <col style={{ width: rankColW }} />
         <col />
-        <col style={{ width: 58 }} />
-        <col style={{ width: 52 }} />
-        <col style={{ width: 58 }} />
-        <col style={{ width: 60 }} />
+        <col style={{ width: 78 }} />
+        <col style={{ width: 64 }} />
         <col style={{ width: 88 }} />
+        <col style={{ width: 72 }} />
+        <col style={{ width: 118 }} />
       </colgroup>
       <thead>
         <tr
@@ -318,9 +299,9 @@ function StandingsTable({
             boxShadow: "inset 0 -1px 0 rgba(255, 255, 255, 0.05)",
           }}
         >
-          {(["#", "Team", "WWCD", "MP", "ELIMS", "PLACE", "TOTAL"] as const).map((label) => {
-            const isTotal = label === "TOTAL";
-            const isTeam = label === "Team";
+          {(["#", "Թիմ", "Հաղթ", "Խաղ", "Սպան.", "Տեղ", "Միավոր"] as const).map((label) => {
+            const isTotal = label === "Միավոր";
+            const isTeam = label === "Թիմ";
             return (
               <th
                 key={label}
@@ -331,7 +312,7 @@ function StandingsTable({
                   padding: `${headPy}px ${isTeam ? 8 : isTotal ? totalPadX : statPadX}px`,
                   borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.22)`,
                   color: isTotal ? TOTAL_GOLD : headTh.color,
-                  letterSpacing: isTotal ? "0.2em" : headTh.letterSpacing,
+                  letterSpacing: headTh.letterSpacing,
                 }}
               >
                 {label}
@@ -352,7 +333,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
       rows,
       matchCurrent,
       matchTotal,
-      standingsSubtitle = "OVERALL STANDINGS",
+      standingsSubtitle = "Ընդհանուր աղյուսակ",
     },
     ref,
   ) {
@@ -362,7 +343,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
       <div
         ref={ref}
         data-graphic-capture
-        lang="en"
+        lang="hy"
         className="relative shrink-0 overflow-visible font-board antialiased"
         style={{
           width: RESULTS_EXPORT_W,
@@ -392,7 +373,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               paddingBottom: 20,
               paddingLeft: SIDE_PAD,
               paddingRight: SIDE_PAD,
-              background: "linear-gradient(180deg, #080a0f 0%, #0a0c12 100%)",
+              background: "linear-gradient(180deg, rgba(8, 10, 15, 0.35) 0%, rgba(10, 12, 18, 0.55) 100%)",
               borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.12)`,
             }}
           >
@@ -402,8 +383,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 fontFamily: FONT_DISPLAY,
                 fontSize: PORTRAIT ? 13 : 15,
                 fontWeight: 700,
-                letterSpacing: "0.28em",
-                textTransform: "uppercase",
+                letterSpacing: "0.08em",
                 color: `rgba(${GRAPHIC_GOLD_RGB}, 0.88)`,
               }}
             >
@@ -416,13 +396,12 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 fontSize: PORTRAIT ? 44 : 56,
                 fontWeight: 700,
                 lineHeight: 1.05,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
+                letterSpacing: "0.02em",
                 color: "#FFF4D6",
                 textShadow: `0 2px 24px rgba(${GRAPHIC_GOLD_RGB}, 0.45), 0 0 48px rgba(${GRAPHIC_GOLD_RGB}, 0.2)`,
               }}
             >
-              Final stage
+              Եզրափակիչ փուլ
             </h1>
             <p
               style={{
@@ -430,12 +409,11 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 fontFamily: FONT_DISPLAY,
                 fontSize: PORTRAIT ? 15 : 18,
                 fontWeight: 700,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
+                letterSpacing: "0.06em",
                 color: `rgba(${GRAPHIC_GOLD_RGB}, 0.82)`,
               }}
             >
-              MATCH {matchCurrent}/{matchTotal}
+              ԽԱՂ {matchCurrent}/{matchTotal}
             </p>
             <p
               style={{
@@ -447,7 +425,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 wordBreak: "break-word",
               }}
             >
-              {tournamentName || "Tournament"}
+              {tournamentName || "Մրցաշար"}
             </p>
           </header>
 
@@ -491,7 +469,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                       color: `rgba(${GRAPHIC_GOLD_RGB}, 0.4)`,
                     }}
                   >
-                    No teams in this tournament
+                    Այս մրցաշարում թիմեր չկան
                   </p>
                 ) : (
                   <StandingsTable rows={rows} dense={dense} />
@@ -507,8 +485,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               fontFamily: FONT_DISPLAY,
               fontSize: 10,
               fontWeight: 600,
-              letterSpacing: "0.28em",
-              textTransform: "uppercase",
+              letterSpacing: "0.06em",
               color: `rgba(${GRAPHIC_GOLD_RGB}, 0.34)`,
             }}
           >

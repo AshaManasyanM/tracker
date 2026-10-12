@@ -12,6 +12,8 @@ export const GRAPHIC_GOLD_DIM = "#FFB300";
 export const GRAPHIC_TEXT = "#f0f4fa";
 export const GRAPHIC_TEXT_MUTED = "rgba(220, 228, 240, 0.72)";
 export const ALPHA7_LOGO_URL = "/alpha7-logo.png";
+/** Full-bleed photo behind standings / results boards. */
+export const RESULTS_BG_URL = "/results-bg.jpg";
 
 /** Legacy broadcast palette (Official standings graphic). */
 export const GRAPHIC_OFFICIAL_BG = "rgb(7, 11, 20)";
