@@ -1,7 +1,6 @@
 import { forwardRef, type CSSProperties, type ReactNode } from "react";
 import type { TeamStanding } from "../lib/standings";
 import {
-  ALPHA7_LOGO_URL,
   GRAPHIC_GOLD_RGB,
   GRAPHIC_TEXT,
   RESULTS_BG_URL,
@@ -22,12 +21,12 @@ const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
 const TOTAL_GOLD = "#FFF3C4";
 const PAGE_BG = "#03050a";
-const TABLE_BG = "rgba(5, 8, 16, 0.62)";
+const TABLE_BG = "rgba(5, 8, 16, 0.94)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
-const TABLE_WATERMARK_OPACITY = 0.09;
+const PHOTO_H = 300;
 const SIDE_PAD = PORTRAIT ? 28 : 40;
-const FOOTER_TEXT = "Ալֆա Սեվեն • Եզրափակիչ փուլ • Ընդհանուր աղյուսակ";
+const FOOTER_TEXT = "Եզրափակիչ փուլ • Ընդհանուր աղյուսակ";
 
 const HEAD_GRADIENT =
   "linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)";
@@ -50,62 +49,35 @@ function rowBackground(_s: TeamStanding, index: number): CSSProperties {
 
 function BroadcastBackground() {
   return (
-    <>
-      <img
-        src={RESULTS_BG_URL}
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center 30%",
-        }}
-      />
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(5, 8, 16, 0.28) 0%, rgba(5, 8, 16, 0.55) 38%, rgba(5, 8, 16, 0.78) 100%)",
-          pointerEvents: "none",
-        }}
-      />
-    </>
-  );
-}
-
-/** Brand mark fills the standings table area — PMSL/PMGC-style broadcast depth. */
-function TableBrandWatermark() {
-  return (
     <div
       aria-hidden
       style={{
         position: "absolute",
-        inset: 0,
-        zIndex: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        height: PHOTO_H,
         overflow: "hidden",
         pointerEvents: "none",
       }}
     >
       <img
-        src={ALPHA7_LOGO_URL}
+        src={RESULTS_BG_URL}
         alt=""
-        loading="eager"
-        decoding="sync"
         style={{
-          position: "absolute",
-          inset: 0,
           display: "block",
           width: "100%",
           height: "100%",
-          objectFit: "contain",
-          objectPosition: "center",
-          opacity: TABLE_WATERMARK_OPACITY,
-          filter: "sepia(0.25) saturate(0.85) brightness(1.15)",
+          objectFit: "cover",
+          objectPosition: "center 28%",
+        }}
+      />
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(180deg, rgba(5, 8, 16, 0.2) 0%, rgba(5, 8, 16, 0.35) 55%, #03050a 100%)",
         }}
       />
     </div>
@@ -119,13 +91,13 @@ function StandingsTable({
   rows: TeamStanding[];
   dense: boolean;
 }) {
-  const rowPadY = dense ? 5 : 6;
-  const headPy = dense ? 12 : 14;
-  const headFontPx = dense ? 12 : 13;
-  const bodyNumberFontPx = 26;
-  const totalFontPx = dense ? 19 : 22;
-  const teamLogoPx = dense ? 52 : 58;
-  const teamNamePx = dense ? 18 : 20;
+  const rowPadY = dense ? 6 : 8;
+  const headPy = dense ? 14 : 16;
+  const headFontPx = dense ? 16 : 18;
+  const bodyNumberFontPx = dense ? 28 : 32;
+  const totalFontPx = dense ? 26 : 30;
+  const teamLogoPx = dense ? 44 : 48;
+  const teamNamePx = dense ? 22 : 26;
   const rankColW = 66;
   const rankCellPadRight = 22;
   const teamCellPadLeft = 12;
@@ -286,11 +258,11 @@ function StandingsTable({
       <colgroup>
         <col style={{ width: rankColW }} />
         <col />
-        <col style={{ width: 78 }} />
-        <col style={{ width: 64 }} />
         <col style={{ width: 88 }} />
         <col style={{ width: 72 }} />
-        <col style={{ width: 118 }} />
+        <col style={{ width: 100 }} />
+        <col style={{ width: 84 }} />
+        <col style={{ width: 132 }} />
       </colgroup>
       <thead>
         <tr
@@ -374,7 +346,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               paddingBottom: 20,
               paddingLeft: SIDE_PAD,
               paddingRight: SIDE_PAD,
-              background: "linear-gradient(180deg, rgba(8, 10, 15, 0.35) 0%, rgba(10, 12, 18, 0.55) 100%)",
+              background: "transparent",
               borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.12)`,
             }}
           >
@@ -382,7 +354,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               style={{
                 margin: 0,
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 13 : 15,
+                fontSize: PORTRAIT ? 18 : 20,
                 fontWeight: 700,
                 letterSpacing: "0.08em",
                 color: `rgba(${GRAPHIC_GOLD_RGB}, 0.88)`,
@@ -392,11 +364,11 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
             </p>
             <h1
               style={{
-                margin: "8px 0 0",
+                margin: "14px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 44 : 56,
+                fontSize: PORTRAIT ? 58 : 68,
                 fontWeight: 700,
-                lineHeight: 1.05,
+                lineHeight: 1.12,
                 letterSpacing: "0.02em",
                 color: "#FFF4D6",
                 textShadow: `0 2px 24px rgba(${GRAPHIC_GOLD_RGB}, 0.45), 0 0 48px rgba(${GRAPHIC_GOLD_RGB}, 0.2)`,
@@ -408,7 +380,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               style={{
                 margin: "6px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 15 : 18,
+                fontSize: PORTRAIT ? 24 : 28,
                 fontWeight: 700,
                 letterSpacing: "0.06em",
                 color: `rgba(${GRAPHIC_GOLD_RGB}, 0.82)`,
@@ -420,7 +392,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               style={{
                 margin: "10px 0 0",
                 fontFamily: FONT_BOARD,
-                fontSize: PORTRAIT ? 22 : 26,
+                fontSize: PORTRAIT ? 30 : 34,
                 fontWeight: 700,
                 color: "rgba(240, 244, 252, 0.95)",
                 wordBreak: "break-word",
@@ -457,7 +429,6 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 padding: PORTRAIT ? "10px 8px 12px" : "12px 10px 14px",
               }}
             >
-              <TableBrandWatermark />
               <div style={{ position: "relative", zIndex: 1 }}>
                 {rows.length === 0 ? (
                   <p
@@ -484,7 +455,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               margin: "20px 0 0",
               textAlign: "center",
               fontFamily: FONT_DISPLAY,
-              fontSize: 10,
+              fontSize: 16,
               fontWeight: 600,
               letterSpacing: "0.06em",
               color: `rgba(${GRAPHIC_GOLD_RGB}, 0.34)`,

@@ -23,13 +23,14 @@ const TEXT_DIM = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.45)`;
 const HEAD_TEXT = "rgba(220, 228, 240, 0.82)";
 const HEADER_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.2)`;
 const PANEL_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.22)`;
-const PANEL_BG = `linear-gradient(165deg, rgba(7, 11, 20, 0.55) 0%, rgba(7, 11, 20, 0.72) 100%)`;
+const PANEL_BG = `linear-gradient(165deg, rgba(7, 11, 20, 0.9) 0%, rgba(7, 11, 20, 0.94) 100%)`;
 const PANEL_SHADOW = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.15) 0px 1px 0px inset, rgba(0, 0, 0, 0.4) 0px 8px 32px`;
 const ROW_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.12)`;
 const ROW_GRADIENT_LEADER = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.38) 0%, rgba(7, 11, 20, 0.35) 100%)`;
 const ROW_GRADIENT = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.16) 0%, rgba(7, 11, 20, 0.22) 100%)`;
 
 const SIDE_PAD = 48;
+const PHOTO_H = 240;
 
 function hasStandingsData(s: TeamStanding): boolean {
   return s.matchesPlayed > 0 || s.totalPoints > 0;
@@ -62,7 +63,7 @@ function SplitColumn({
           margin: "0 0 8px",
           textAlign: "center",
           fontFamily: FONT_DISPLAY,
-          fontSize: 16,
+          fontSize: 20,
           fontWeight: 700,
           letterSpacing: "0.12em",
           color: GRAPHIC_OFFICIAL_GOLD,
@@ -111,14 +112,14 @@ function OfficialResultsColumn({
   /** Narrow column for the 8–8 side-by-side board. */
   compact?: boolean;
 }) {
-  const rowPadY = compact ? 4 : dense ? 6 : 8;
-  const headPy = compact ? 8 : dense ? 11 : 15;
-  const headFontPx = compact ? 12 : dense ? 13 : 16;
-  const bodyNumberFontPx = compact ? 18 : 26;
-  const totalFontPx = compact ? 18 : dense ? 19 : 22;
-  const teamLogoPx = compact ? 28 : dense ? 36 : 40;
-  const teamNamePx = compact ? 15 : dense ? 18 : 20;
-  const rowHeight = Math.max(compact ? 40 : dense ? 52 : 56, teamLogoPx + rowPadY * 2 + 4);
+  const rowPadY = compact ? 6 : dense ? 6 : 8;
+  const headPy = compact ? 10 : dense ? 11 : 15;
+  const headFontPx = compact ? 16 : dense ? 16 : 18;
+  const bodyNumberFontPx = compact ? 24 : 28;
+  const totalFontPx = compact ? 24 : dense ? 24 : 28;
+  const teamLogoPx = compact ? 34 : dense ? 40 : 44;
+  const teamNamePx = compact ? 20 : dense ? 22 : 24;
+  const rowHeight = Math.max(compact ? 48 : dense ? 56 : 60, teamLogoPx + rowPadY * 2 + 4);
   const cellMiddle = { verticalAlign: "middle" as const };
   const statCell = { ...cellMiddle, whiteSpace: "nowrap" as const };
   const numberFontBase: CSSProperties = {
@@ -146,12 +147,12 @@ function OfficialResultsColumn({
         style={{ tableLayout: "fixed", width: "100%" }}
       >
         <colgroup>
-          <col style={{ width: compact ? 40 : 66 }} />
+          <col style={{ width: compact ? 52 : 72 }} />
           <col />
-          <col style={{ width: compact ? 58 : 88 }} />
-          <col style={{ width: compact ? 64 : 96 }} />
-          <col style={{ width: compact ? 58 : 88 }} />
-          <col style={{ width: compact ? 76 : 120 }} />
+          <col style={{ width: compact ? 78 : 96 }} />
+          <col style={{ width: compact ? 88 : 104 }} />
+          <col style={{ width: compact ? 78 : 96 }} />
+          <col style={{ width: compact ? 108 : 128 }} />
         </colgroup>
         <thead>
           <tr style={{ borderBottom: `1px solid rgba(255, 255, 255, 0.12)` }}>
@@ -339,28 +340,37 @@ export const FinalResultsGraphicOfficial = forwardRef<
         fontFamily: FONT_BOARD,
       }}
     >
-      <img
-        src={RESULTS_BG_URL}
-        alt=""
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center 30%",
-        }}
-      />
       <div
         aria-hidden
         style={{
           position: "absolute",
-          inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(5, 8, 16, 0.38) 0%, rgba(5, 8, 16, 0.62) 32%, rgba(5, 8, 16, 0.78) 100%)",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: PHOTO_H,
+          overflow: "hidden",
         }}
-      />
+      >
+        <img
+          src={RESULTS_BG_URL}
+          alt=""
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            objectPosition: "center 28%",
+          }}
+        />
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background:
+              "linear-gradient(180deg, rgba(5, 8, 16, 0.18) 0%, rgba(5, 8, 16, 0.4) 60%, rgb(7, 11, 20) 100%)",
+          }}
+        />
+      </div>
 
       <div
         className="relative z-10 flex flex-col pb-8 pt-10"
@@ -385,7 +395,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
               style={{
                 margin: 0,
                 fontFamily: FONT_DISPLAY,
-                fontSize: 14,
+                fontSize: 20,
                 fontWeight: 600,
                 letterSpacing: "0.08em",
                 color: GRAPHIC_OFFICIAL_GOLD,
@@ -397,7 +407,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
               style={{
                 margin: "4px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: 52,
+                fontSize: 64,
                 fontWeight: 700,
                 lineHeight: 0.95,
                 letterSpacing: "0.02em",
@@ -411,7 +421,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
               style={{
                 margin: "8px 0 0",
                 fontFamily: FONT_BOARD,
-                fontSize: 22,
+                fontSize: 28,
                 fontWeight: 600,
                 lineHeight: 1.2,
                 color: GRAPHIC_OFFICIAL_GOLD,
@@ -426,7 +436,7 @@ export const FinalResultsGraphicOfficial = forwardRef<
               margin: 0,
               flexShrink: 0,
               fontFamily: FONT_DISPLAY,
-              fontSize: 22,
+              fontSize: 28,
               fontWeight: 700,
               letterSpacing: "0.06em",
               color: `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.9)`,
