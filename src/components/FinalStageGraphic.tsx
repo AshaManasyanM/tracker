@@ -70,7 +70,7 @@ function BroadcastBackground() {
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(5, 8, 16, 0.4) 0%, rgba(5, 8, 16, 0.68) 34%, rgba(5, 8, 16, 0.82) 100%)",
+            "linear-gradient(180deg, rgba(5, 8, 16, 0.28) 0%, rgba(5, 8, 16, 0.55) 38%, rgba(5, 8, 16, 0.78) 100%)",
           pointerEvents: "none",
         }}
       />
@@ -344,13 +344,14 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
         ref={ref}
         data-graphic-capture
         lang="hy"
-        className="relative shrink-0 overflow-visible font-board antialiased"
+        className="relative shrink-0 overflow-hidden font-board antialiased"
         style={{
           width: RESULTS_EXPORT_W,
           color: GRAPHIC_TEXT,
           backgroundColor: PAGE_BG,
           fontFamily: FONT_BOARD,
           lineHeight: "normal",
+          boxShadow: `inset 0 0 0 3px rgba(${GRAPHIC_GOLD_RGB}, 0.55)`,
         }}
       >
         <BroadcastBackground />

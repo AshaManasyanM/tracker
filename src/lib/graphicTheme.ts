@@ -1,5 +1,7 @@
 /** Group stage results PNG width; height fits content up to max. */
 export const RESULTS_EXPORT_W = 1080;
+/** Landscape board: two columns of teams side by side. */
+export const SPLIT_RESULTS_EXPORT_W = 1920;
 export const RESULTS_EXPORT_MAX_H = 1350;
 /** Final stage standings (tall header + 16+ rows) needs a higher cap. */
 export const FINAL_STAGE_EXPORT_MAX_H = 2400;

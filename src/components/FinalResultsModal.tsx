@@ -20,6 +20,7 @@ import {
   GRAPHIC_OFFICIAL_BG,
   RESULTS_EXPORT_MAX_H,
   RESULTS_EXPORT_W,
+  SPLIT_RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { standingsGraphicMeta } from "../lib/standingsGraphicMeta";
 import { FinalResultsGraphicOfficial } from "./FinalResultsGraphicOfficial";
@@ -34,15 +35,18 @@ function GraphicPreview({
   label,
   contentHeight,
   previewInnerRef,
+  exportWidth = RESULTS_EXPORT_W,
   children,
 }: {
   label: string;
   contentHeight: number;
   previewInnerRef: React.RefObject<HTMLDivElement | null>;
+  exportWidth?: number;
   children: React.ReactNode;
 }) {
-  const previewW = RESULTS_EXPORT_W * PREVIEW_SCALE;
-  const previewH = contentHeight * PREVIEW_SCALE;
+  const scale = (RESULTS_EXPORT_W * PREVIEW_SCALE) / exportWidth;
+  const previewW = exportWidth * scale;
+  const previewH = contentHeight * scale;
 
   return (
     <div>
@@ -56,7 +60,7 @@ function GraphicPreview({
             <div
               ref={previewInnerRef}
               className="absolute left-0 top-0 origin-top-left"
-              style={{ width: RESULTS_EXPORT_W, transform: `scale(${PREVIEW_SCALE})` }}
+              style={{ width: exportWidth, transform: `scale(${scale})` }}
             >
               {children}
             </div>
@@ -147,11 +151,12 @@ export function FinalResultsModal({
       try {
         const bg = variant === "official" ? GRAPHIC_OFFICIAL_BG : undefined;
         const maxH = variant === "final" ? FINAL_STAGE_EXPORT_MAX_H : RESULTS_EXPORT_MAX_H;
+        const exportW = variant === "official" ? SPLIT_RESULTS_EXPORT_W : RESULTS_EXPORT_W;
         const exportH = measureGraphicExportHeight(el, maxH);
-        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH, bg, 1);
+        const blob = await captureVisibleGraphic(el, exportW, exportH, bg, 1);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
-        const suffix = variant === "final" ? "final_stage" : "group_stage_official";
+        const suffix = variant === "final" ? "photo" : "split_8_8";
         downloadPngBlob(blob, `${base}_${suffix}_${stamp}.png`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
@@ -186,7 +191,7 @@ export function FinalResultsModal({
               Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              Final stage premium · official broadcast · 1080px wide
+              Photo poster · 8–8 teams side by side
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -196,7 +201,7 @@ export function FinalResultsModal({
               onClick={() => void downloadPng("final")}
               className="rounded-lg border border-[#c9a227]/50 bg-gradient-to-b from-[#3a3018] to-[#1a150a] px-4 py-2.5 text-sm font-semibold text-[#fff3cc] shadow-[0_0_24px_rgba(201,162,39,0.25)] hover:from-[#4a3f22] hover:to-[#221c0e] disabled:cursor-wait disabled:opacity-60"
             >
-              {downloading === "final" ? "Rendering…" : "Download final stage"}
+              {downloading === "final" ? "Rendering…" : "Download photo"}
             </button>
             <button
               type="button"
@@ -204,7 +209,7 @@ export function FinalResultsModal({
               onClick={() => void downloadPng("official")}
               className="rounded-lg border border-line bg-canvas-overlay px-4 py-2.5 text-sm font-semibold text-slate-100 hover:border-white/20 disabled:cursor-wait disabled:opacity-60"
             >
-              {downloading === "official" ? "Rendering…" : "Download official"}
+              {downloading === "official" ? "Rendering…" : "Download 8–8"}
             </button>
             <button
               type="button"
@@ -218,7 +223,7 @@ export function FinalResultsModal({
 
         <div className="flex flex-col" style={{ gap: PREVIEW_GAP_PX }}>
           <GraphicPreview
-            label="Final stage — premium standings"
+            label="Photo poster"
             contentHeight={finalHeight}
             previewInnerRef={finalPreviewInnerRef}
           >
@@ -226,9 +231,10 @@ export function FinalResultsModal({
           </GraphicPreview>
 
           <GraphicPreview
-            label="Official standings — broadcast style"
+            label="8–8 side by side"
             contentHeight={officialHeight}
             previewInnerRef={officialPreviewInnerRef}
+            exportWidth={SPLIT_RESULTS_EXPORT_W}
           >
             <FinalResultsGraphicOfficial ref={officialRef} {...officialProps} />
           </GraphicPreview>
