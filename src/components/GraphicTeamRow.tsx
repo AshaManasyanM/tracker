@@ -13,6 +13,7 @@ export function GraphicTeamRow({
   maxNameWidth,
   align = "center",
   nameColor = GOLD,
+  nameFontWeight = 600,
   shrinkWrap = false,
 }: {
   team: Team;
@@ -23,6 +24,7 @@ export function GraphicTeamRow({
   maxNameWidth?: number;
   align?: "left" | "center";
   nameColor?: string;
+  nameFontWeight?: number;
   /** Shrink row to logo+name width (for centered MVP-style layouts). */
   shrinkWrap?: boolean;
 }) {
@@ -49,7 +51,7 @@ export function GraphicTeamRow({
     whiteSpace: "nowrap",
     fontFamily: "'Rajdhani', 'Noto Sans Armenian', system-ui, sans-serif",
     fontSize: nameFontSize,
-    fontWeight: 600,
+    fontWeight: nameFontWeight,
     color: nameColor,
     lineHeight: 1.2,
   };

@@ -1,9 +1,6 @@
 import { forwardRef, type CSSProperties } from "react";
 import { formatStandingRank, type TeamStanding } from "../lib/standings";
 import {
-  GRAPHIC_OFFICIAL_BG,
-  GRAPHIC_OFFICIAL_GOLD,
-  GRAPHIC_OFFICIAL_GOLD_RGB,
   RESULTS_BG_URL,
   SPLIT_RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
@@ -19,26 +16,25 @@ export type FinalResultsGraphicOfficialProps = {
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
-const TEXT_DIM = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.45)`;
-const HEAD_TEXT = "rgba(220, 228, 240, 0.82)";
-const HEADER_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.2)`;
-const PANEL_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.22)`;
-const PANEL_BG = `linear-gradient(165deg, rgba(7, 11, 20, 0.9) 0%, rgba(7, 11, 20, 0.94) 100%)`;
-const PANEL_SHADOW = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.15) 0px 1px 0px inset, rgba(0, 0, 0, 0.4) 0px 8px 32px`;
-const ROW_BORDER = `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.12)`;
-const ROW_GRADIENT_LEADER = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.38) 0%, rgba(7, 11, 20, 0.35) 100%)`;
-const ROW_GRADIENT = `linear-gradient(90deg, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.16) 0%, rgba(7, 11, 20, 0.22) 100%)`;
+const NAME_COLOR = "#F6F3EA";
+const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
+const GOLD = "#E6C15A";
+const GOLD_DIM = "rgba(230, 193, 90, 0.5)";
+const PAGE_BG = "#070b14";
+const TABLE_BG = "rgba(5, 8, 16, 0.58)";
+const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
-const SIDE_PAD = 48;
-const PHOTO_H = 240;
+const SIDE_PAD = 20;
+
+function placeTone(rank: number): { background: string; rank: string } {
+  if (rank === 1) return { background: "rgba(230, 193, 90, 0.18)", rank: "#E6C15A" };
+  if (rank === 2) return { background: "rgba(214, 220, 230, 0.14)", rank: "#E4E7EE" };
+  if (rank === 3) return { background: "rgba(184, 122, 66, 0.18)", rank: "#E0A36A" };
+  return { background: "transparent", rank: GOLD };
+}
 
 function hasStandingsData(s: TeamStanding): boolean {
   return s.matchesPlayed > 0 || s.totalPoints > 0;
-}
-
-function rowBackground(s: TeamStanding): string {
-  if (!hasStandingsData(s)) return ROW_GRADIENT;
-  return s.rank === 1 ? ROW_GRADIENT_LEADER : ROW_GRADIENT;
 }
 
 function rangeTitle(start: number, count: number): string {
@@ -50,11 +46,9 @@ function rangeTitle(start: number, count: number): string {
 function SplitColumn({
   title,
   rows,
-  dense,
 }: {
   title: string;
   rows: TeamStanding[];
-  dense: boolean;
 }) {
   return (
     <div style={{ flex: "1 1 0", minWidth: 0 }}>
@@ -63,22 +57,20 @@ function SplitColumn({
           margin: "0 0 8px",
           textAlign: "center",
           fontFamily: FONT_DISPLAY,
-          fontSize: 20,
+          fontSize: 14,
           fontWeight: 700,
-          letterSpacing: "0.12em",
-          color: GRAPHIC_OFFICIAL_GOLD,
+          letterSpacing: "0.08em",
+          color: GOLD,
         }}
       >
         {title}
       </p>
       <div
-        className="rounded-lg border"
         style={{
-          borderColor: PANEL_BORDER,
-          padding: "10px 12px 12px",
-          background: PANEL_BG,
-          boxShadow: PANEL_SHADOW,
-          minHeight: 120,
+          borderRadius: 8,
+          border: "1px solid rgba(255, 255, 255, 0.1)",
+          padding: "4px 8px 6px",
+          background: TABLE_BG,
         }}
       >
         {rows.length === 0 ? (
@@ -89,37 +81,29 @@ function SplitColumn({
               textAlign: "center",
               fontFamily: FONT_DISPLAY,
               fontSize: 18,
-              color: TEXT_DIM,
+              color: GOLD_DIM,
             }}
           >
             —
           </p>
         ) : (
-          <OfficialResultsColumn rows={rows} dense={dense} compact />
+          <OfficialResultsColumn rows={rows} />
         )}
       </div>
     </div>
   );
 }
 
-function OfficialResultsColumn({
-  rows,
-  dense,
-  compact = false,
-}: {
-  rows: TeamStanding[];
-  dense: boolean;
-  /** Narrow column for the 8–8 side-by-side board. */
-  compact?: boolean;
-}) {
-  const rowPadY = compact ? 6 : dense ? 6 : 8;
-  const headPy = compact ? 10 : dense ? 11 : 15;
-  const headFontPx = compact ? 16 : dense ? 16 : 18;
-  const bodyNumberFontPx = compact ? 24 : 28;
-  const totalFontPx = compact ? 24 : dense ? 24 : 28;
-  const teamLogoPx = compact ? 34 : dense ? 40 : 44;
-  const teamNamePx = compact ? 20 : dense ? 22 : 24;
-  const rowHeight = Math.max(compact ? 48 : dense ? 56 : 60, teamLogoPx + rowPadY * 2 + 4);
+function OfficialResultsColumn({ rows }: { rows: TeamStanding[] }) {
+  const rowPadY = 4;
+  const headPy = 7;
+  const headFontPx = 13;
+  const statFontPx = 22;
+  const rankFontPx = 22;
+  const totalFontPx = 22;
+  const teamLogoPx = 32;
+  const teamNamePx = 24;
+  const rowHeight = teamLogoPx + rowPadY * 2 + 6;
   const cellMiddle = { verticalAlign: "middle" as const };
   const statCell = { ...cellMiddle, whiteSpace: "nowrap" as const };
   const numberFontBase: CSSProperties = {
@@ -131,7 +115,7 @@ function OfficialResultsColumn({
   };
   const headTh = {
     fontFamily: FONT_DISPLAY,
-    color: HEAD_TEXT,
+    color: "rgba(246, 243, 234, 0.72)",
     backgroundColor: "transparent",
     whiteSpace: "nowrap" as const,
     lineHeight: 1.1,
@@ -147,12 +131,12 @@ function OfficialResultsColumn({
         style={{ tableLayout: "fixed", width: "100%" }}
       >
         <colgroup>
-          <col style={{ width: compact ? 52 : 72 }} />
+          <col style={{ width: 40 }} />
           <col />
-          <col style={{ width: compact ? 78 : 96 }} />
-          <col style={{ width: compact ? 88 : 104 }} />
-          <col style={{ width: compact ? 78 : 96 }} />
-          <col style={{ width: compact ? 108 : 128 }} />
+          <col style={{ width: 58 }} />
+          <col style={{ width: 64 }} />
+          <col style={{ width: 56 }} />
+          <col style={{ width: 68 }} />
         </colgroup>
         <thead>
           <tr style={{ borderBottom: `1px solid rgba(255, 255, 255, 0.12)` }}>
@@ -200,42 +184,45 @@ function OfficialResultsColumn({
               <td
                 colSpan={6}
                 className="px-2 py-8 text-center text-sm"
-                style={{ fontFamily: FONT_BOARD, color: TEXT_DIM }}
+                style={{ fontFamily: FONT_BOARD, color: GOLD_DIM }}
               >
                 —
               </td>
             </tr>
           ) : (
-            rows.map((r) => (
+            rows.map((r, i) => {
+              const place = r.rank > 0 ? r.rank : i + 1;
+              const tone = placeTone(place);
+              const played = hasStandingsData(r);
+              return (
               <tr
                 key={r.team.id}
                 style={{
                   height: rowHeight,
-                  borderBottom: `1px solid ${ROW_BORDER}`,
-                  background: rowBackground(r),
+                  borderBottom: `1px solid ${ROW_LINE}`,
+                  background: tone.background,
                 }}
               >
                 <td
-                  className="pl-4 pr-2 text-center"
-                  style={{ ...cellMiddle, paddingTop: rowPadY, paddingBottom: rowPadY }}
+                  className="text-center"
+                  style={{ ...cellMiddle, padding: `${rowPadY}px 2px` }}
                 >
                   <span
                     style={{
                       display: "inline-block",
                       ...numberFontBase,
-                      fontSize: bodyNumberFontPx,
-                      color: r.matchesPlayed === 0 ? TEXT_DIM : GRAPHIC_OFFICIAL_GOLD,
+                      fontSize: rankFontPx,
+                      color: played ? tone.rank : GOLD_DIM,
                     }}
                   >
                     {formatStandingRank(r)}
                   </span>
                 </td>
                 <td
-                  className="pl-2 pr-1 text-left"
+                  className="text-left"
                   style={{
                     ...cellMiddle,
-                    paddingTop: rowPadY,
-                    paddingBottom: rowPadY,
+                    padding: `${rowPadY}px 4px`,
                     overflow: "hidden",
                     maxWidth: 0,
                   }}
@@ -245,67 +232,62 @@ function OfficialResultsColumn({
                     align="left"
                     logoPx={teamLogoPx}
                     nameFontSize={teamNamePx}
-                    nameColor={GRAPHIC_OFFICIAL_GOLD}
-                    gapPx={dense ? 10 : 12}
+                    nameFontWeight={700}
+                    nameColor={NAME_COLOR}
+                    gapPx={8}
                   />
                 </td>
                 <td
-                  className="px-2 text-center"
+                  className="text-center"
                   style={{
                     ...numberFontBase,
-                    fontSize: bodyNumberFontPx,
-                    color: GRAPHIC_OFFICIAL_GOLD,
+                    fontSize: statFontPx,
+                    color: STAT_COLOR,
                     ...statCell,
-                    paddingTop: rowPadY,
-                    paddingBottom: rowPadY,
+                    padding: `${rowPadY}px 2px`,
                   }}
                 >
                   {r.chickenDinners}
                 </td>
                 <td
-                  className="px-2 text-center"
+                  className="text-center"
                   style={{
                     ...numberFontBase,
-                    fontSize: bodyNumberFontPx,
-                    color: GRAPHIC_OFFICIAL_GOLD,
+                    fontSize: statFontPx,
+                    color: STAT_COLOR,
                     ...statCell,
-                    paddingTop: rowPadY,
-                    paddingBottom: rowPadY,
+                    padding: `${rowPadY}px 2px`,
                   }}
                 >
                   {r.totalKills}
                 </td>
                 <td
-                  className="px-2 text-center"
+                  className="text-center"
                   style={{
                     ...numberFontBase,
-                    fontSize: bodyNumberFontPx,
-                    color: GRAPHIC_OFFICIAL_GOLD,
+                    fontSize: statFontPx,
+                    color: STAT_COLOR,
                     ...statCell,
-                    paddingTop: rowPadY,
-                    paddingBottom: rowPadY,
+                    padding: `${rowPadY}px 2px`,
                   }}
                 >
                   {r.totalPlacementPoints}
                 </td>
                 <td
-                  className="px-2 text-center"
+                  className="text-center"
                   style={{
                     ...numberFontBase,
                     fontSize: totalFontPx,
-                    color: hasStandingsData(r) ? GRAPHIC_OFFICIAL_GOLD : TEXT_DIM,
-                    textShadow: hasStandingsData(r)
-                      ? `0 0 14px rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.45)`
-                      : undefined,
+                    color: played ? GOLD : GOLD_DIM,
                     ...statCell,
-                    paddingTop: rowPadY,
-                    paddingBottom: rowPadY,
+                    padding: `${rowPadY}px 2px`,
                   }}
                 >
                   {r.totalPoints}
                 </td>
               </tr>
-            ))
+              );
+            })
           )}
         </tbody>
       </table>
@@ -320,10 +302,8 @@ export const FinalResultsGraphicOfficial = forwardRef<
   { tournamentName, rows, matchCurrent, matchTotal },
   ref,
 ) {
-  const leftCount = Math.ceil(rows.length / 2);
-  const leftRows = rows.slice(0, leftCount);
-  const rightRows = rows.slice(leftCount);
-  const dense = leftCount > 8;
+  const leftRows = rows.slice(0, 8);
+  const rightRows = rows.slice(8);
 
   return (
     <div
@@ -335,59 +315,50 @@ export const FinalResultsGraphicOfficial = forwardRef<
         width: SPLIT_RESULTS_EXPORT_W,
         fontFeatureSettings: '"tnum" 1',
         lineHeight: "normal",
-        color: GRAPHIC_OFFICIAL_GOLD,
-        backgroundColor: GRAPHIC_OFFICIAL_BG,
+        color: NAME_COLOR,
+        backgroundColor: PAGE_BG,
         fontFamily: FONT_BOARD,
       }}
     >
+      <img
+        src={RESULTS_BG_URL}
+        alt=""
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center 30%",
+        }}
+      />
       <div
         aria-hidden
         style={{
           position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: PHOTO_H,
-          overflow: "hidden",
+          inset: 0,
+          background: "rgba(5, 8, 16, 0.68)",
         }}
-      >
-        <img
-          src={RESULTS_BG_URL}
-          alt=""
-          style={{
-            display: "block",
-            width: "100%",
-            height: "100%",
-            objectFit: "cover",
-            objectPosition: "center 28%",
-          }}
-        />
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(180deg, rgba(5, 8, 16, 0.18) 0%, rgba(5, 8, 16, 0.4) 60%, rgb(7, 11, 20) 100%)",
-          }}
-        />
-      </div>
+      />
 
       <div
-        className="relative z-10 flex flex-col pb-8 pt-10"
+        className="relative z-10 flex flex-col"
         style={{
+          padding: "14px 20px 12px",
           paddingLeft: SIDE_PAD,
           paddingRight: SIDE_PAD,
           boxSizing: "border-box",
         }}
       >
         <header
-          className="shrink-0 border-b pb-4"
+          className="shrink-0"
           style={{
-            borderColor: HEADER_BORDER,
             display: "flex",
             alignItems: "flex-end",
             justifyContent: "space-between",
-            gap: 24,
+            gap: 16,
+            paddingBottom: 8,
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -395,93 +366,64 @@ export const FinalResultsGraphicOfficial = forwardRef<
               style={{
                 margin: 0,
                 fontFamily: FONT_DISPLAY,
-                fontSize: 20,
+                fontSize: 13,
                 fontWeight: 600,
-                letterSpacing: "0.08em",
-                color: GRAPHIC_OFFICIAL_GOLD,
+                letterSpacing: "0.06em",
+                color: GOLD,
               }}
             >
               8 · 8 կողք կողքի
             </p>
             <h1
               style={{
-                margin: "4px 0 0",
+                margin: "2px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: 64,
+                fontSize: 32,
                 fontWeight: 700,
-                lineHeight: 0.95,
-                letterSpacing: "0.02em",
-                color: GRAPHIC_OFFICIAL_GOLD,
-                textShadow: `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.25) 0px 2px 20px`,
+                lineHeight: 1.05,
+                color: NAME_COLOR,
               }}
             >
               Վերջնական արդյունքներ
             </h1>
-            <p
-              style={{
-                margin: "8px 0 0",
-                fontFamily: FONT_BOARD,
-                fontSize: 28,
-                fontWeight: 600,
-                lineHeight: 1.2,
-                color: GRAPHIC_OFFICIAL_GOLD,
-                wordBreak: "break-word",
-              }}
-            >
-              {tournamentName || "Մրցաշար"}
-            </p>
           </div>
           <p
             style={{
               margin: 0,
               flexShrink: 0,
               fontFamily: FONT_DISPLAY,
-              fontSize: 28,
-              fontWeight: 700,
-              letterSpacing: "0.06em",
-              color: `rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.9)`,
+              fontSize: 16,
+              fontWeight: 600,
+              color: GOLD,
+              textAlign: "right",
             }}
           >
             ԽԱՂ {matchCurrent}/{matchTotal}
+            <span style={{ display: "block", color: "rgba(246, 243, 234, 0.85)", fontWeight: 600 }}>
+              {tournamentName || "Մրցաշար"}
+            </span>
           </p>
         </header>
 
-        <div className="mt-4">
+        <div style={{ marginTop: 6 }}>
           {rows.length === 0 ? (
             <div
               style={{
-                padding: "64px 0",
+                padding: "36px 0",
                 textAlign: "center",
                 fontFamily: FONT_DISPLAY,
-                fontSize: 24,
-                color: TEXT_DIM,
+                fontSize: 18,
+                color: GOLD_DIM,
               }}
             >
               Այս մրցաշարում թիմեր չկան
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 22, alignItems: "flex-start" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "stretch" }}>
+              <SplitColumn title={rangeTitle(1, leftRows.length)} rows={leftRows} />
               <SplitColumn
-                title={rangeTitle(1, leftRows.length)}
-                rows={leftRows}
-                dense={dense}
-              />
-              <div
-                aria-hidden
-                style={{
-                  width: 1,
-                  alignSelf: "stretch",
-                  background: `linear-gradient(180deg, transparent, rgba(${GRAPHIC_OFFICIAL_GOLD_RGB}, 0.55), transparent)`,
-                }}
-              />
-              <SplitColumn
-                title={
-                  rightRows.length
-                    ? rangeTitle(leftRows.length + 1, rightRows.length)
-                    : "—"
-                }
+                title={rightRows.length ? rangeTitle(9, rightRows.length) : "9–16"}
                 rows={rightRows}
-                dense={dense}
               />
             </div>
           )}

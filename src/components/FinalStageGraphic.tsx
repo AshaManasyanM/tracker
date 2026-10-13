@@ -1,8 +1,6 @@
 import { forwardRef, type CSSProperties, type ReactNode } from "react";
 import type { TeamStanding } from "../lib/standings";
 import {
-  GRAPHIC_GOLD_RGB,
-  GRAPHIC_TEXT,
   RESULTS_BG_URL,
   RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
@@ -19,92 +17,77 @@ export type FinalStageGraphicProps = {
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
-const TOTAL_GOLD = "#FFF3C4";
-const PAGE_BG = "#03050a";
-const TABLE_BG = "rgba(5, 8, 16, 0.94)";
+const NAME_COLOR = "#F6F3EA";
+const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
+const GOLD = "#E6C15A";
+const GOLD_DIM = "rgba(230, 193, 90, 0.55)";
+const PAGE_BG = "#070b14";
+const TABLE_BG = "rgba(5, 8, 16, 0.58)";
+const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
-const PHOTO_H = 300;
-const SIDE_PAD = PORTRAIT ? 28 : 40;
+const SIDE_PAD = 18;
 const FOOTER_TEXT = "Եզրափակիչ փուլ • Ընդհանուր աղյուսակ";
 
-const HEAD_GRADIENT =
-  "linear-gradient(180deg, rgba(255, 255, 255, 0.07) 0%, rgba(255, 255, 255, 0.02) 100%)";
-const ROW_STRIPE_A = "rgba(255, 255, 255, 0.025)";
-const ROW_STRIPE_B = "rgba(255, 255, 255, 0.05)";
+function placeTone(rank: number): { background: string; rank: string } {
+  if (rank === 1) return { background: "rgba(230, 193, 90, 0.18)", rank: "#E6C15A" };
+  if (rank === 2) return { background: "rgba(214, 220, 230, 0.14)", rank: "#E4E7EE" };
+  if (rank === 3) return { background: "rgba(184, 122, 66, 0.18)", rank: "#E0A36A" };
+  return { background: "transparent", rank: GOLD };
+}
 
 function hasStandingsData(s: TeamStanding): boolean {
   return s.matchesPlayed > 0 || s.totalPoints > 0;
 }
 
-function rankNumberColor(played: boolean): string {
-  return played ? `rgba(${GRAPHIC_GOLD_RGB}, 0.92)` : `rgba(${GRAPHIC_GOLD_RGB}, 0.55)`;
-}
-
-function rowBackground(_s: TeamStanding, index: number): CSSProperties {
-  return {
-    backgroundColor: index % 2 === 0 ? ROW_STRIPE_A : ROW_STRIPE_B,
-  };
+function rankNumberColor(rank: number, played: boolean): string {
+  if (!played) return GOLD_DIM;
+  return placeTone(rank).rank;
 }
 
 function BroadcastBackground() {
   return (
-    <div
-      aria-hidden
-      style={{
-        position: "absolute",
-        top: 0,
-        left: 0,
-        right: 0,
-        height: PHOTO_H,
-        overflow: "hidden",
-        pointerEvents: "none",
-      }}
-    >
+    <>
       <img
         src={RESULTS_BG_URL}
         alt=""
-        style={{
-          display: "block",
-          width: "100%",
-          height: "100%",
-          objectFit: "cover",
-          objectPosition: "center 28%",
-        }}
-      />
-      <div
+        aria-hidden
         style={{
           position: "absolute",
           inset: 0,
-          background:
-            "linear-gradient(180deg, rgba(5, 8, 16, 0.2) 0%, rgba(5, 8, 16, 0.35) 55%, #03050a 100%)",
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+          objectPosition: "center 30%",
         }}
       />
-    </div>
+      <div
+        aria-hidden
+        style={{
+          position: "absolute",
+          inset: 0,
+          background: "rgba(5, 8, 16, 0.68)",
+        }}
+      />
+    </>
   );
 }
 
-function StandingsTable({
-  rows,
-  dense,
-}: {
-  rows: TeamStanding[];
-  dense: boolean;
-}) {
-  const rowPadY = dense ? 6 : 8;
-  const headPy = dense ? 14 : 16;
-  const headFontPx = dense ? 16 : 18;
-  const bodyNumberFontPx = dense ? 28 : 32;
-  const totalFontPx = dense ? 26 : 30;
-  const teamLogoPx = dense ? 44 : 48;
-  const teamNamePx = dense ? 22 : 26;
-  const rankColW = 66;
-  const rankCellPadRight = 22;
-  const teamCellPadLeft = 12;
-  const logoToNameGapPx = dense ? 16 : 18;
-  const statPadX = dense ? 12 : 14;
-  const totalPadX = dense ? 12 : 14;
-  const rowHeight = Math.max(dense ? 48 : 52, teamLogoPx + rowPadY * 2 + 4);
+function StandingsTable({ rows }: { rows: TeamStanding[] }) {
+  const rowPadY = 4;
+  const headPy = 8;
+  const headFontPx = 14;
+  const statFontPx = 22;
+  const rankFontPx = 24;
+  const totalFontPx = 24;
+  const teamLogoPx = 32;
+  const teamNamePx = 24;
+  const rankColW = 46;
+  const teamCellPadLeft = 8;
+  const logoToNameGapPx = 10;
+  const statPadX = 4;
+  const totalPadX = 6;
+  const rowHeight = teamLogoPx + rowPadY * 2 + 6;
 
   const numberFontBase: CSSProperties = {
     fontFamily: FONT_DISPLAY,
@@ -129,21 +112,23 @@ function StandingsTable({
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i]!;
     const played = hasStandingsData(r);
+    const place = r.rank > 0 ? r.rank : i + 1;
+    const tone = placeTone(place);
 
     bodyRows.push(
       <tr
         key={r.team.id}
         style={{
           height: rowHeight,
-          borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.14)`,
-          ...rowBackground(r, i),
+          borderBottom: `1px solid ${ROW_LINE}`,
+          backgroundColor: tone.background,
         }}
       >
         <td
           className="text-center"
           style={{
             verticalAlign: "middle",
-            padding: `${rowPadY}px ${rankCellPadRight}px ${rowPadY}px 6px`,
+            padding: `${rowPadY}px 4px`,
             height: rowHeight,
           }}
         >
@@ -159,8 +144,8 @@ function StandingsTable({
             <span
               style={{
                 ...numberFontBase,
-                fontSize: bodyNumberFontPx,
-                color: rankNumberColor(played),
+                fontSize: rankFontPx,
+                color: rankNumberColor(place, played),
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -183,6 +168,8 @@ function StandingsTable({
             align="left"
             logoPx={teamLogoPx}
             nameFontSize={teamNamePx}
+            nameFontWeight={700}
+            nameColor={NAME_COLOR}
             gapPx={logoToNameGapPx}
           />
         </td>
@@ -192,8 +179,8 @@ function StandingsTable({
             verticalAlign: "middle",
             padding: `${rowPadY}px ${statPadX}px`,
             ...numberFontBase,
-            fontSize: bodyNumberFontPx,
-            color: `rgba(${GRAPHIC_GOLD_RGB}, 0.92)`,
+            fontSize: statFontPx,
+            color: STAT_COLOR,
           }}
         >
           {r.chickenDinners}
@@ -204,8 +191,8 @@ function StandingsTable({
             verticalAlign: "middle",
             padding: `${rowPadY}px ${statPadX}px`,
             ...numberFontBase,
-            fontSize: bodyNumberFontPx,
-            color: `rgba(${GRAPHIC_GOLD_RGB}, 0.88)`,
+            fontSize: statFontPx,
+            color: STAT_COLOR,
           }}
         >
           {r.matchesPlayed}
@@ -216,8 +203,8 @@ function StandingsTable({
             verticalAlign: "middle",
             padding: `${rowPadY}px ${statPadX}px`,
             ...numberFontBase,
-            fontSize: bodyNumberFontPx,
-            color: `rgba(${GRAPHIC_GOLD_RGB}, 0.92)`,
+            fontSize: statFontPx,
+            color: STAT_COLOR,
           }}
         >
           {r.totalKills}
@@ -228,8 +215,8 @@ function StandingsTable({
             verticalAlign: "middle",
             padding: `${rowPadY}px ${statPadX}px`,
             ...numberFontBase,
-            fontSize: bodyNumberFontPx,
-            color: `rgba(${GRAPHIC_GOLD_RGB}, 0.85)`,
+            fontSize: statFontPx,
+            color: STAT_COLOR,
           }}
         >
           {r.totalPlacementPoints}
@@ -241,10 +228,7 @@ function StandingsTable({
             padding: `${rowPadY}px ${totalPadX}px ${rowPadY}px ${totalPadX + 4}px`,
             ...numberFontBase,
             fontSize: totalFontPx,
-            color: played ? TOTAL_GOLD : `rgba(${GRAPHIC_GOLD_RGB}, 0.42)`,
-            textShadow: played
-              ? `0 0 14px rgba(${GRAPHIC_GOLD_RGB}, 0.55)`
-              : undefined,
+            color: played ? GOLD : GOLD_DIM,
           }}
         >
           {r.totalPoints}
@@ -258,17 +242,17 @@ function StandingsTable({
       <colgroup>
         <col style={{ width: rankColW }} />
         <col />
-        <col style={{ width: 88 }} />
+        <col style={{ width: 56 }} />
+        <col style={{ width: 48 }} />
+        <col style={{ width: 62 }} />
+        <col style={{ width: 52 }} />
         <col style={{ width: 72 }} />
-        <col style={{ width: 100 }} />
-        <col style={{ width: 84 }} />
-        <col style={{ width: 132 }} />
       </colgroup>
       <thead>
         <tr
           style={{
-            background: HEAD_GRADIENT,
-            boxShadow: "inset 0 -1px 0 rgba(255, 255, 255, 0.05)",
+            background: "transparent",
+            boxShadow: `inset 0 -1px 0 ${ROW_LINE}`,
           }}
         >
           {(["#", "Թիմ", "Հաղթ", "Խաղ", "Սպան.", "Տեղ", "Միավոր"] as const).map((label) => {
@@ -282,8 +266,8 @@ function StandingsTable({
                   ...headTh,
                   fontSize: isTotal ? headFontPx : headFontPx,
                   padding: `${headPy}px ${isTeam ? 8 : isTotal ? totalPadX : statPadX}px`,
-                  borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.22)`,
-                  color: isTotal ? TOTAL_GOLD : headTh.color,
+                  borderBottom: `1px solid ${ROW_LINE}`,
+                  color: isTotal ? GOLD : "rgba(246, 243, 234, 0.72)",
                   letterSpacing: headTh.letterSpacing,
                 }}
               >
@@ -309,8 +293,6 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
     },
     ref,
   ) {
-    const dense = rows.length > 16;
-
     return (
       <div
         ref={ref}
@@ -319,146 +301,102 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
         className="relative shrink-0 overflow-hidden font-board antialiased"
         style={{
           width: RESULTS_EXPORT_W,
-          color: GRAPHIC_TEXT,
+          color: NAME_COLOR,
           backgroundColor: PAGE_BG,
           fontFamily: FONT_BOARD,
           lineHeight: "normal",
-          boxShadow: `inset 0 0 0 3px rgba(${GRAPHIC_GOLD_RGB}, 0.55)`,
         }}
       >
         <BroadcastBackground />
 
         <div
-          className="relative z-10 flex flex-col pb-8 pt-6"
+          className="relative z-10 flex flex-col"
           style={{
+            padding: "14px 18px 12px",
             paddingLeft: SIDE_PAD,
             paddingRight: SIDE_PAD,
             boxSizing: "border-box",
           }}
         >
-          <header
-            className="shrink-0 text-center"
-            style={{
-              marginLeft: -SIDE_PAD,
-              marginRight: -SIDE_PAD,
-              marginTop: -24,
-              paddingTop: 24,
-              paddingBottom: 20,
-              paddingLeft: SIDE_PAD,
-              paddingRight: SIDE_PAD,
-              background: "transparent",
-              borderBottom: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.12)`,
-            }}
-          >
+          <header className="shrink-0 text-center" style={{ paddingBottom: 8 }}>
             <p
               style={{
                 margin: 0,
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 18 : 20,
-                fontWeight: 700,
-                letterSpacing: "0.08em",
-                color: `rgba(${GRAPHIC_GOLD_RGB}, 0.88)`,
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: "0.06em",
+                color: GOLD,
               }}
             >
               {standingsSubtitle}
             </p>
             <h1
               style={{
-                margin: "14px 0 0",
+                margin: "2px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 58 : 68,
+                fontSize: PORTRAIT ? 32 : 36,
                 fontWeight: 700,
-                lineHeight: 1.12,
-                letterSpacing: "0.02em",
-                color: "#FFF4D6",
-                textShadow: `0 2px 24px rgba(${GRAPHIC_GOLD_RGB}, 0.45), 0 0 48px rgba(${GRAPHIC_GOLD_RGB}, 0.2)`,
+                lineHeight: 1.05,
+                color: NAME_COLOR,
               }}
             >
               Եզրափակիչ փուլ
             </h1>
             <p
               style={{
-                margin: "6px 0 0",
+                margin: "2px 0 0",
                 fontFamily: FONT_DISPLAY,
-                fontSize: PORTRAIT ? 24 : 28,
-                fontWeight: 700,
-                letterSpacing: "0.06em",
-                color: `rgba(${GRAPHIC_GOLD_RGB}, 0.82)`,
+                fontSize: 15,
+                fontWeight: 600,
+                color: GOLD,
               }}
             >
               ԽԱՂ {matchCurrent}/{matchTotal}
-            </p>
-            <p
-              style={{
-                margin: "10px 0 0",
-                fontFamily: FONT_BOARD,
-                fontSize: PORTRAIT ? 30 : 34,
-                fontWeight: 700,
-                color: "rgba(240, 244, 252, 0.95)",
-                wordBreak: "break-word",
-              }}
-            >
-              {tournamentName || "Մրցաշար"}
+              <span style={{ color: "rgba(246, 243, 234, 0.8)", fontWeight: 600 }}>
+                {"  ·  "}
+                {tournamentName || "Մրցաշար"}
+              </span>
             </p>
           </header>
 
-          <div className="relative mt-4">
-            <div
-              aria-hidden
-              style={{
-                position: "absolute",
-                inset: "-12px -6px",
-                borderRadius: 12,
-                background:
-                  "radial-gradient(ellipse 85% 60% at 50% 40%, rgba(255,255,255,0.02), transparent 70%)",
-                pointerEvents: "none",
-              }}
-            />
+          <div style={{ marginTop: 8 }}>
             <div
               style={{
-                position: "relative",
                 overflow: "hidden",
                 borderRadius: 8,
-                border: `1px solid rgba(${GRAPHIC_GOLD_RGB}, 0.22)`,
+                border: "1px solid rgba(255, 255, 255, 0.1)",
                 backgroundColor: TABLE_BG,
-                boxShadow: `
-                  0 20px 50px rgba(0, 0, 0, 0.7),
-                  inset 0 1px 0 rgba(${GRAPHIC_GOLD_RGB}, 0.08),
-                  inset 0 0 80px rgba(0, 0, 0, 0.35)
-                `,
-                padding: PORTRAIT ? "10px 8px 12px" : "12px 10px 14px",
+                padding: "4px 6px 6px",
               }}
             >
-              <div style={{ position: "relative", zIndex: 1 }}>
-                {rows.length === 0 ? (
-                  <p
-                    style={{
-                      margin: 0,
-                      padding: "40px 0",
-                      textAlign: "center",
-                      fontFamily: FONT_DISPLAY,
-                      fontSize: 20,
-                      color: `rgba(${GRAPHIC_GOLD_RGB}, 0.4)`,
-                    }}
-                  >
-                    Այս մրցաշարում թիմեր չկան
-                  </p>
-                ) : (
-                  <StandingsTable rows={rows} dense={dense} />
-                )}
-              </div>
+              {rows.length === 0 ? (
+                <p
+                  style={{
+                    margin: 0,
+                    padding: "28px 0",
+                    textAlign: "center",
+                    fontFamily: FONT_DISPLAY,
+                    fontSize: 18,
+                    color: GOLD_DIM,
+                  }}
+                >
+                  Այս մրցաշարում թիմեր չկան
+                </p>
+              ) : (
+                <StandingsTable rows={rows} />
+              )}
             </div>
           </div>
 
           <p
             style={{
-              margin: "20px 0 0",
+              margin: "8px 0 0",
               textAlign: "center",
               fontFamily: FONT_DISPLAY,
-              fontSize: 16,
+              fontSize: 12,
               fontWeight: 600,
-              letterSpacing: "0.06em",
-              color: `rgba(${GRAPHIC_GOLD_RGB}, 0.34)`,
+              color: "rgba(246, 243, 234, 0.55)",
             }}
           >
             {FOOTER_TEXT}
