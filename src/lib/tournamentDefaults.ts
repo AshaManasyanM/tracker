@@ -1,5 +1,5 @@
 import type { Match, Team, Tournament } from "../types/tournament";
-import { buildMatchLabelFromMeta, compactMatchDays, nextMatchDay } from "./matchDisplay";
+import { buildMatchLabelFromMeta, compactMatchDaysByStage, nextMatchDay } from "./matchDisplay";
 import { newId } from "./id";
 import { normalizeMatchTeamResult } from "./matchResultKills";
 
@@ -43,19 +43,23 @@ export function forkEmptyTournamentKeepId(id: string, displayName: string): Tour
 export function appendMatch(
   teams: Team[],
   matches: Match[],
-  opts?: { day?: number },
+  opts?: { day?: number; stageId?: string },
 ): Match {
+  const scoped = opts?.stageId
+    ? matches.filter((m) => m.stageId === opts.stageId)
+    : matches.filter((m) => !m.stageId);
   const nextOrder =
     matches.length === 0 ? 0 : Math.max(...matches.map((m) => m.order)) + 1;
   const day =
-    opts?.day != null && opts.day > 0 ? Math.floor(opts.day) : nextMatchDay(matches);
+    opts?.day != null && opts.day > 0 ? Math.floor(opts.day) : nextMatchDay(scoped);
   const map = "";
   return {
     id: newId("match"),
-    label: buildMatchLabelFromMeta(day, map, matches.length),
+    label: buildMatchLabelFromMeta(day, map, scoped.length),
     day,
     map,
     order: nextOrder,
+    stageId: opts?.stageId,
     results: emptyResultsForTeams(teams),
   };
 }
@@ -81,5 +85,5 @@ export function ensureAllMatchesShape(
   matches: Match[],
   teams: Team[],
 ): Match[] {
-  return compactMatchDays(matches.map((m) => ensureMatchResultsShape(m, teams)));
+  return compactMatchDaysByStage(matches.map((m) => ensureMatchResultsShape(m, teams)));
 }

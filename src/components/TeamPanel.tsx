@@ -4,26 +4,34 @@ import type { Player, PlayerGender, Team } from "../types/tournament";
 import { genderLabel, isPlayerGender, playerHasGender } from "../lib/playerGender";
 import { MAX_PLAYERS_PER_TEAM } from "../lib/matchResultKills";
 import { processTeamLogoFile } from "../lib/processTeamLogo";
+import { stageSlice } from "../lib/stages";
 import { TeamAvatar } from "./TeamAvatar";
 
 export function TeamPanel() {
   const { tournament, dispatch } = useTournament();
+  const slice = stageSlice(tournament);
   const [name, setName] = useState("");
   const [tag, setTag] = useState("");
   const [teamSearch, setTeamSearch] = useState("");
+  const listedTeams = slice.teams;
 
   const filteredTeams = useMemo(() => {
     const q = teamSearch.trim().toLowerCase();
-    if (!q) return tournament.teams;
-    return tournament.teams.filter(
+    if (!q) return listedTeams;
+    return listedTeams.filter(
       (t) =>
         t.name.toLowerCase().includes(q) ||
         (t.tag?.toLowerCase().includes(q) ?? false),
     );
-  }, [tournament.teams, teamSearch]);
+  }, [listedTeams, teamSearch]);
 
   const add = () => {
-    dispatch({ type: "addTeam", name: name || `Squad ${tournament.teams.length + 1}`, tag });
+    dispatch({
+      type: "addTeam",
+      name: name || `Squad ${tournament.teams.length + 1}`,
+      tag,
+      ...(slice.active ? { stageId: slice.active.id } : {}),
+    });
     setName("");
     setTag("");
   };
@@ -35,6 +43,7 @@ export function TeamPanel() {
         <p className="mt-1 text-xs text-slate-500">
           Logos and <span className="text-slate-400">player rosters</span> live here — with a roster,
           Live console splits elims per player and auto-sums team kills for scoring.
+          {slice.active ? ` New squads are added to ${slice.active.name}.` : ""}
         </p>
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-xs text-slate-400">
@@ -70,9 +79,13 @@ export function TeamPanel() {
       </section>
 
       <section className="rounded-xl border border-line bg-canvas-overlay p-4 shadow-panel">
-        <h2 className="text-base font-semibold text-slate-100">Roster order</h2>
+        <h2 className="text-base font-semibold text-slate-100">
+          {slice.active ? `${slice.active.name} teams` : "Roster order"}
+        </h2>
         <p className="mt-1 text-xs text-slate-500">
-          Order controls the Live console grid — put active squads at the top for faster typing.
+          {slice.active
+            ? "This list is only the squads in the selected stage. Assign or move teams on the Groups tab."
+            : "Order controls the Live console grid — put active squads at the top for faster typing."}{" "}
           Each player needs <span className="text-slate-400">Boy</span> or{" "}
           <span className="text-slate-400">Girl</span> for separate MVPs.
         </p>
@@ -87,10 +100,12 @@ export function TeamPanel() {
           />
         </label>
         <ul className="mt-3 max-h-[min(60dvh,520px)] overflow-y-auto rounded-lg border border-line bg-canvas lg:max-h-none">
-          {tournament.teams.length === 0 && (
-            <li className="px-3 py-6 text-center text-sm text-slate-500">No teams yet.</li>
+          {listedTeams.length === 0 && (
+            <li className="px-3 py-6 text-center text-sm text-slate-500">
+              {slice.active ? `No teams in ${slice.active.name} yet.` : "No teams yet."}
+            </li>
           )}
-          {tournament.teams.length > 0 && filteredTeams.length === 0 && (
+          {listedTeams.length > 0 && filteredTeams.length === 0 && (
             <li className="px-3 py-6 text-center text-sm text-slate-500">
               No teams match &ldquo;{teamSearch.trim()}&rdquo;.
             </li>
@@ -99,7 +114,9 @@ export function TeamPanel() {
             <TeamRow
               key={t.id}
               team={t}
-              index={tournament.teams.findIndex((x) => x.id === t.id)}
+              index={listedTeams.findIndex((x) => x.id === t.id)}
+              scopeIds={listedTeams.map((x) => x.id)}
+              stageId={slice.active?.id}
             />
           ))}
         </ul>
@@ -108,8 +125,18 @@ export function TeamPanel() {
   );
 }
 
-function TeamRow({ team, index }: { team: Team; index: number }) {
-  const { tournament, dispatch } = useTournament();
+function TeamRow({
+  team,
+  index,
+  scopeIds,
+  stageId,
+}: {
+  team: Team;
+  index: number;
+  scopeIds: string[];
+  stageId?: string;
+}) {
+  const { dispatch } = useTournament();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(team.name);
   const [tag, setTag] = useState(team.tag ?? "");
@@ -117,14 +144,14 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const move = (dir: -1 | 1) => {
-    const ids = tournament.teams.map((x) => x.id);
     const j = index + dir;
-    if (j < 0 || j >= ids.length) return;
-    const next = [...ids];
+    if (j < 0 || j >= scopeIds.length) return;
+    const next = [...scopeIds];
     const tmp = next[index]!;
     next[index] = next[j]!;
     next[j] = tmp;
-    dispatch({ type: "reorderTeams", teamIds: next });
+    if (stageId) dispatch({ type: "reorderStageTeams", stageId, teamIds: next });
+    else dispatch({ type: "reorderTeams", teamIds: next });
   };
 
   const save = () => {
@@ -239,7 +266,7 @@ function TeamRow({ team, index }: { team: Team; index: number }) {
             type="button"
             className="rounded border border-line px-2 py-1 text-xs text-slate-300 hover:bg-canvas-overlay"
             onClick={() => move(1)}
-            disabled={index === tournament.teams.length - 1}
+            disabled={index === scopeIds.length - 1}
           >
             Down
           </button>

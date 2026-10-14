@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import { HeaderBar } from "./components/HeaderBar";
 import { LiveConsole } from "./components/LiveConsole";
 import { TeamPanel } from "./components/TeamPanel";
+import { GroupsPanel } from "./components/GroupsPanel";
 import { MatchPanel } from "./components/MatchPanel";
 import { RulesPanel } from "./components/RulesPanel";
+import { StageSwitcher } from "./components/StageSwitcher";
 import { useTournament } from "./state/TournamentContext";
 
-type Tab = "live" | "teams" | "matches" | "rules";
+type Tab = "live" | "teams" | "groups" | "matches" | "rules";
 
 const tabs: { id: Tab; label: string; shortLabel: string; hint: string }[] = [
   {
@@ -20,6 +22,12 @@ const tabs: { id: Tab; label: string; shortLabel: string; hint: string }[] = [
     label: "Teams",
     shortLabel: "Teams",
     hint: "Squads, logos, and rosters — add as many as you need",
+  },
+  {
+    id: "groups",
+    label: "Groups",
+    shortLabel: "Groups",
+    hint: "Name groups, assign squads, and send qualifiers to the finals",
   },
   {
     id: "matches",
@@ -44,6 +52,8 @@ export default function App() {
         return <LiveConsole />;
       case "teams":
         return <TeamPanel />;
+      case "groups":
+        return <GroupsPanel />;
       case "matches":
         return <MatchPanel />;
       case "rules":
@@ -93,6 +103,7 @@ export default function App() {
           </div>
         </div>
       </nav>
+      <StageSwitcher />
       <main className="mx-auto w-full min-w-0 max-w-[1600px] flex-1 px-3 py-3 pb-6 sm:px-4 sm:py-4">
         {body}
       </main>

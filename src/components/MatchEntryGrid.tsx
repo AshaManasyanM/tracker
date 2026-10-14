@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useTournament } from "../state/TournamentContext";
 import type { Match, Team } from "../types/tournament";
 import { matchPointsForTeam } from "../lib/scoring";
+import { stageSlice } from "../lib/stages";
 import { effectiveTeamKills } from "../lib/matchResultKills";
 import { TeamAvatar } from "./TeamAvatar";
 
@@ -36,12 +37,15 @@ function useTeamRows(teams: Team[], teamSearch: string) {
 
 export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamSearch?: string }) {
   const { tournament } = useTournament();
-  const teams = useTeamRows(tournament.teams, teamSearch);
+  const slice = stageSlice(tournament);
+  const teams = useTeamRows(slice.teams, teamSearch);
 
-  if (tournament.teams.length === 0) {
+  if (slice.teams.length === 0) {
     return (
       <div className="rounded-xl border border-line bg-canvas-overlay p-4 text-sm text-slate-400">
-        Add at least one team on the Teams tab to start entering lobby results.
+        {slice.active
+          ? `Add teams to ${slice.active.name} on the Groups tab before entering results.`
+          : "Add at least one team on the Teams tab to start entering lobby results."}
       </div>
     );
   }
@@ -58,7 +62,7 @@ export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamS
     <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
       <div className="flex flex-col gap-3 p-3 md:hidden">
         {teams.map((team) => (
-          <TeamMatchCard key={team.id} team={team} match={match} allMatches={tournament.matches} />
+          <TeamMatchCard key={team.id} team={team} match={match} allMatches={slice.matches} />
         ))}
       </div>
       <div className="hidden overflow-x-auto px-2 pb-2 pt-1 md:block sm:px-3 sm:pb-3">
@@ -83,7 +87,7 @@ export function MatchEntryGrid({ match, teamSearch = "" }: { match: Match; teamS
                 key={team.id}
                 team={team}
                 match={match}
-                allMatches={tournament.matches}
+                allMatches={slice.matches}
               />
             ))}
           </tbody>

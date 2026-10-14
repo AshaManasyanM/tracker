@@ -43,8 +43,20 @@ export type Match = {
   map?: string;
   /** Sort order within the tournament */
   order: number;
+  /** Which group or the finals this lobby belongs to. Absent = single-field tournament. */
+  stageId?: string;
   /** teamId → result */
   results: Record<string, MatchTeamResult>;
+};
+
+export type StageKind = "group" | "final";
+
+/** A named group, or the finals. Team ids point at `Tournament.teams`. */
+export type TournamentStage = {
+  id: string;
+  name: string;
+  kind: StageKind;
+  teamIds: string[];
 };
 
 export type Tournament = {
@@ -55,6 +67,10 @@ export type Tournament = {
   teams: Team[];
   /** All rounds; each `results[teamId]` holds placement, kills, and optional `playerKills` per roster member */
   matches: Match[];
+  /** Named groups plus one finals stage. Absent = one field, current behavior. */
+  stages?: TournamentStage[];
+  /** Stage shown in Live, Teams, and Matches. */
+  activeStageId?: string | null;
   /** Currently focused match in admin UI */
   activeMatchId: string | null;
   createdAt: number;

@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { formatMatchDisplay, groupMatchesByDay } from "../lib/matchDisplay";
 import { useTournament } from "../state/TournamentContext";
+import { stageSlice, teamsInStage, stageById } from "../lib/stages";
 import type { Match } from "../types/tournament";
 
 const MAP_SUGGESTIONS = ["Erangel", "Miramar", "Sanhok", "Vikendi", "Livik", "Karakin"];
 
 export function MatchPanel() {
   const { tournament, dispatch } = useTournament();
-  const groups = useMemo(() => groupMatchesByDay(tournament.matches), [tournament.matches]);
-  const activeDay = tournament.matches.find((m) => m.id === tournament.activeMatchId)?.day;
+  const slice = stageSlice(tournament);
+  const groups = useMemo(() => groupMatchesByDay(slice.matches), [slice.matches]);
+  const activeDay = slice.matches.find((m) => m.id === tournament.activeMatchId)?.day;
   const [openDays, setOpenDays] = useState<Set<number>>(() => {
     const initial = new Set<number>();
     if (activeDay != null && activeDay > 0) initial.add(activeDay);
@@ -35,10 +37,13 @@ export function MatchPanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-base font-semibold text-slate-100">Matches</h2>
+          <h2 className="text-base font-semibold text-slate-100">
+            {slice.active ? `${slice.active.name} matches` : "Matches"}
+          </h2>
           <p className="text-xs text-slate-500">
             Lobbies are grouped by <span className="text-slate-400">day</span>; each map is a
             separate match (e.g. Day 1 — Erangel).
+            {slice.active ? " Days restart for each group and for the finals." : ""}
           </p>
         </div>
         <button
@@ -163,14 +168,18 @@ function MapRow({
     });
   };
 
+  const field = useMemo(() => {
+    const stage = stageById(tournament, match.stageId);
+    return stage ? teamsInStage(tournament, stage) : tournament.teams;
+  }, [tournament, match.stageId]);
   const played = useMemo(() => {
     let c = 0;
-    for (const t of tournament.teams) {
+    for (const t of field) {
       const p = match.results[t.id]?.placement;
       if (p !== null && p !== undefined) c++;
     }
     return c;
-  }, [match.results, tournament.teams]);
+  }, [match.results, field]);
 
   const preview = formatMatchDisplay(match);
 
@@ -220,7 +229,7 @@ function MapRow({
         </div>
       </div>
       <div className="text-xs text-slate-500">
-        {played}/{tournament.teams.length} teams with a placement
+        {played}/{field.length} teams with a placement
       </div>
     </li>
   );

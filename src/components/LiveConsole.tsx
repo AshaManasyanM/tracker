@@ -6,19 +6,21 @@ import { MvpStrip, PlayerFraggerboard } from "./PlayerFraggerboard";
 import { formatMatchDisplay, groupMatchesByDay } from "../lib/matchDisplay";
 import { MatchDayPicker } from "./MatchDayPicker";
 import { duplicatePlacementsInMatch } from "../lib/standings";
+import { stageSlice } from "../lib/stages";
 
 export function LiveConsole() {
   const { tournament, dispatch } = useTournament();
+  const slice = stageSlice(tournament);
   const [teamSearch, setTeamSearch] = useState("");
   const sortedMatches = useMemo(
     () =>
-      [...tournament.matches].sort(
+      [...slice.matches].sort(
         (a, b) =>
           (a.day ?? 999) - (b.day ?? 999) ||
           a.order - b.order ||
           a.id.localeCompare(b.id),
       ),
-    [tournament.matches],
+    [slice.matches],
   );
   const activeId =
     tournament.activeMatchId && sortedMatches.some((m) => m.id === tournament.activeMatchId)
@@ -31,9 +33,9 @@ export function LiveConsole() {
     if (!activeMatch) return new Map<number, string[]>();
     return duplicatePlacementsInMatch(
       activeMatch,
-      tournament.teams.map((t) => t.id),
+      slice.teams.map((t) => t.id),
     );
-  }, [activeMatch, tournament.teams]);
+  }, [activeMatch, slice.teams]);
 
   return (
     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px] xl:grid-cols-[minmax(0,1fr)_440px]">
@@ -92,7 +94,7 @@ export function LiveConsole() {
             </button>
             <button
               type="button"
-              disabled={!activeMatch || tournament.teams.length === 0}
+              disabled={!activeMatch || slice.teams.length === 0}
               className="shrink-0 rounded-md border border-line bg-canvas-overlay px-3 py-1.5 text-sm text-slate-300 hover:border-warn/40 hover:text-warn disabled:cursor-not-allowed disabled:opacity-40"
               title="Clear placement and elims for the selected match"
               onClick={() => {
@@ -110,17 +112,21 @@ export function LiveConsole() {
             </button>
             <button
               type="button"
-              disabled={tournament.teams.length === 0 || tournament.matches.length === 0}
+              disabled={slice.teams.length === 0 || slice.matches.length === 0}
               className="shrink-0 rounded-md border border-warn/30 bg-warn/10 px-3 py-1.5 text-sm text-warn hover:bg-warn/15 disabled:cursor-not-allowed disabled:opacity-40"
-              title="Clear placement and elims for every match"
+              title={slice.active ? `Clear scores for ${slice.active.name}` : "Clear placement and elims for every match"}
               onClick={() => {
+                const scope = slice.active ? slice.active.name : "every match";
                 if (
                   !confirm(
-                    "Reset all placement, elims, and points for every match? Live standings and MVP boards clear too. Teams and match list stay as they are.",
+                    `Reset all placement, elims, and points for ${scope}? Teams and the match list stay as they are.`,
                   )
                 )
                   return;
-                dispatch({ type: "clearAllScores" });
+                dispatch({
+                  type: "clearAllScores",
+                  ...(slice.active ? { stageId: slice.active.id } : {}),
+                });
               }}
             >
               Reset all numbers
@@ -139,7 +145,9 @@ export function LiveConsole() {
           <MatchEntryGrid match={activeMatch} teamSearch={teamSearch} />
         ) : (
           <div className="rounded-xl border border-line bg-canvas-overlay p-4 text-sm text-slate-400">
-            No matches yet.
+            {slice.active
+              ? `No matches in ${slice.active.name} yet. Add one to start this stage from zero.`
+              : "No matches yet."}
           </div>
         )}
 
@@ -155,9 +163,13 @@ export function LiveConsole() {
       </section>
 
       <aside className="flex flex-col gap-3 lg:sticky lg:top-3 lg:self-start">
-        <MvpStrip teams={tournament.teams} matches={tournament.matches} />
-        <Leaderboard teams={tournament.teams} matches={tournament.matches} />
-        <PlayerFraggerboard teams={tournament.teams} matches={tournament.matches} />
+        <MvpStrip teams={slice.teams} matches={slice.matches} />
+        <Leaderboard
+          teams={slice.teams}
+          matches={slice.matches}
+          title={slice.active ? `${slice.active.name} standings` : "Live standings"}
+        />
+        <PlayerFraggerboard teams={slice.teams} matches={slice.matches} />
       </aside>
     </div>
   );

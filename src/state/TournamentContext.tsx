@@ -10,13 +10,14 @@ import {
   type Dispatch,
   type ReactNode,
 } from "react";
-import type { MatchTeamResult, PlayerGender, Team, Tournament } from "../types/tournament";
+import type { MatchTeamResult, PlayerGender, Team, Tournament, TournamentStage } from "../types/tournament";
 import { isPlayerGender } from "../lib/playerGender";
 import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
 import { saveTournamentRow, fetchTournamentById } from "../lib/tournamentDb";
-import { buildMatchLabelFromMeta, compactMatchDays } from "../lib/matchDisplay";
+import { buildMatchLabelFromMeta, compactMatchDaysByStage } from "../lib/matchDisplay";
+import { normalizeTournament } from "../lib/stages";
 import {
   appendMatch,
   createEmptyTournament,
@@ -36,7 +37,7 @@ import {
 
 export type TournamentAction =
   | { type: "renameTournament"; name: string }
-  | { type: "addTeam"; name: string; tag?: string }
+  | { type: "addTeam"; name: string; tag?: string; stageId?: string }
   | { type: "updateTeam"; teamId: string; name: string; tag?: string }
   | { type: "setTeamLogo"; teamId: string; logoDataUrl: string | null }
   | { type: "addPlayer"; teamId: string; name: string; gender: PlayerGender }
@@ -50,6 +51,15 @@ export type TournamentAction =
   | { type: "removePlayer"; teamId: string; playerId: string }
   | { type: "removeTeam"; teamId: string }
   | { type: "reorderTeams"; teamIds: string[] }
+  | { type: "reorderStageTeams"; stageId: string; teamIds: string[] }
+  | { type: "addGroup"; name?: string }
+  | { type: "renameStage"; stageId: string; name: string }
+  | { type: "removeGroup"; stageId: string }
+  | { type: "setActiveStage"; stageId: string }
+  | { type: "assignTeamToGroup"; teamId: string; stageId: string | null }
+  | { type: "qualifyTeams"; teamIds: string[] }
+  | { type: "removeFinalist"; teamId: string }
+  | { type: "assignMatchesToStage"; stageId: string }
   | { type: "addMatch"; day?: number }
   | { type: "removeMatch"; matchId: string }
   | { type: "renameMatch"; matchId: string; label: string }
@@ -67,7 +77,7 @@ export type TournamentAction =
     }
   | { type: "setMatchPlayerKills"; matchId: string; teamId: string; playerId: string; kills: number }
   | { type: "importOcrMatchSnapshot"; matchId: string; rows: OcrImportRow[] }
-  | { type: "clearAllScores" }
+  | { type: "clearAllScores"; stageId?: string }
   | { type: "clearMatchScores"; matchId: string }
   | { type: "hydrate"; tournament: Tournament };
 
@@ -76,13 +86,14 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
 
   switch (action.type) {
     case "hydrate": {
-      const matches = ensureAllMatchesShape(action.tournament.matches, action.tournament.teams);
+      const normalized = normalizeTournament(action.tournament);
+      const matches = ensureAllMatchesShape(normalized.matches, normalized.teams);
       const activeMatchId =
-        action.tournament.activeMatchId && matches.some((m) => m.id === action.tournament.activeMatchId)
-          ? action.tournament.activeMatchId
+        normalized.activeMatchId && matches.some((m) => m.id === normalized.activeMatchId)
+          ? normalized.activeMatchId
           : matches[0]?.id ?? null;
       return {
-        ...action.tournament,
+        ...normalized,
         matches,
         activeMatchId,
         updatedAt: Date.now(),
@@ -104,7 +115,10 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
           [team.id]: normalizeMatchTeamResult(team, { placement: null, kills: 0 }),
         },
       }));
-      return touch({ ...state, teams: [...state.teams, team], matches });
+      const stages = state.stages?.map((stage) =>
+        stage.id === action.stageId ? { ...stage, teamIds: [...stage.teamIds, team.id] } : stage,
+      );
+      return touch({ ...state, teams: [...state.teams, team], matches, stages });
     }
     case "updateTeam": {
       const teams = state.teams.map((t) =>
@@ -188,19 +202,159 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         const { [action.teamId]: _, ...rest } = m.results;
         return { ...m, results: rest };
       });
+      const stages = state.stages?.map((stage) => ({
+        ...stage,
+        teamIds: stage.teamIds.filter((id) => id !== action.teamId),
+      }));
       let activeMatchId = state.activeMatchId;
       if (activeMatchId && !matches.some((x) => x.id === activeMatchId)) {
         activeMatchId = matches[0]?.id ?? null;
       }
-      return touch({ ...state, teams, matches, activeMatchId });
+      return touch({ ...state, teams, matches, stages, activeMatchId });
     }
     case "reorderTeams": {
       const byId = new Map(state.teams.map((t) => [t.id, t] as const));
       const teams = action.teamIds.map((id) => byId.get(id)).filter(Boolean) as Team[];
       return touch({ ...state, teams });
     }
+    case "reorderStageTeams": {
+      const stage = state.stages?.find((s) => s.id === action.stageId);
+      if (!stage) return state;
+      const allowed = new Set(stage.teamIds);
+      const teamIds = action.teamIds.filter((id) => allowed.has(id));
+      if (teamIds.length !== stage.teamIds.length) return state;
+      const stages = state.stages?.map((s) => (s.id === stage.id ? { ...s, teamIds } : s));
+      return touch({ ...state, stages });
+    }
+    case "addGroup": {
+      const groups = (state.stages ?? []).filter((s) => s.kind === "group");
+      const letter = groups.length < 26 ? String.fromCharCode(65 + groups.length) : String(groups.length + 1);
+      const group: TournamentStage = {
+        id: newId("stage"),
+        name: action.name?.trim() || `Group ${letter}`,
+        kind: "group",
+        teamIds: [],
+      };
+      const stages = [...(state.stages ?? [])];
+      const finalsIndex = stages.findIndex((s) => s.kind === "final");
+      if (finalsIndex === -1) {
+        stages.push(group, {
+          id: newId("stage"),
+          name: "Finals",
+          kind: "final",
+          teamIds: [],
+        });
+      } else {
+        stages.splice(finalsIndex, 0, group);
+      }
+      return touch({
+        ...state,
+        stages,
+        activeStageId: group.id,
+      });
+    }
+    case "renameStage": {
+      const name = action.name.trim();
+      if (!name) return state;
+      const stages = state.stages?.map((s) => (s.id === action.stageId ? { ...s, name } : s));
+      return touch({ ...state, stages });
+    }
+    case "removeGroup": {
+      const stage = state.stages?.find((s) => s.id === action.stageId && s.kind === "group");
+      if (!stage || !state.stages) return state;
+      let stages = state.stages.filter((s) => s.id !== stage.id);
+      let matches = state.matches.filter((m) => m.stageId !== stage.id);
+      const groupsLeft = stages.filter((s) => s.kind === "group");
+      const finals = stages.find((s) => s.kind === "final");
+      if (groupsLeft.length === 0) {
+        const finalsMatches = finals ? matches.filter((m) => m.stageId === finals.id) : [];
+        const finalsScored = finalsMatches.some((m) =>
+          Object.values(m.results).some((r) => r?.placement != null),
+        );
+        if ((finals?.teamIds.length ?? 0) === 0 && !finalsScored) {
+          matches = matches.map((m) => ({ ...m, stageId: undefined }));
+          if (matches.length === 0) matches = [appendMatch(state.teams, [])];
+          matches = compactMatchDaysByStage(matches);
+          const activeMatchId = matches.some((m) => m.id === state.activeMatchId)
+            ? state.activeMatchId
+            : matches[0]?.id ?? null;
+          return touch({
+            ...state,
+            stages: undefined,
+            activeStageId: null,
+            matches,
+            activeMatchId,
+          });
+        }
+      }
+      if (matches.length === 0) matches = [appendMatch(state.teams, [])];
+      matches = compactMatchDaysByStage(matches);
+      const activeStageId =
+        state.activeStageId === stage.id
+          ? groupsLeft[0]?.id ?? finals?.id ?? null
+          : state.activeStageId;
+      const activeMatchId = matches.some((m) => m.id === state.activeMatchId)
+        ? state.activeMatchId
+        : matches.find((m) => m.stageId === activeStageId)?.id ?? matches[0]?.id ?? null;
+      return touch({ ...state, stages, activeStageId, matches, activeMatchId });
+    }
+    case "setActiveStage": {
+      if (!state.stages?.some((s) => s.id === action.stageId)) return state;
+      const stageMatches = state.matches.filter((m) => m.stageId === action.stageId);
+      const activeMatchId = stageMatches.some((m) => m.id === state.activeMatchId)
+        ? state.activeMatchId
+        : stageMatches[0]?.id ?? state.activeMatchId;
+      return touch({ ...state, activeStageId: action.stageId, activeMatchId });
+    }
+    case "assignTeamToGroup": {
+      if (!state.stages) return state;
+      const teamExists = state.teams.some((t) => t.id === action.teamId);
+      if (!teamExists) return state;
+      const target =
+        action.stageId == null
+          ? null
+          : state.stages.find((s) => s.id === action.stageId && s.kind === "group");
+      if (action.stageId != null && !target) return state;
+      const stages = state.stages.map((s) => {
+        if (s.kind !== "group") return s;
+        const teamIds = s.teamIds.filter((id) => id !== action.teamId);
+        if (target && s.id === target.id) teamIds.push(action.teamId);
+        return { ...s, teamIds };
+      });
+      return touch({ ...state, stages });
+    }
+    case "qualifyTeams": {
+      const finals = state.stages?.find((s) => s.kind === "final");
+      if (!finals) return state;
+      const known = new Set(state.teams.map((t) => t.id));
+      const teamIds = [...finals.teamIds];
+      for (const id of action.teamIds) {
+        if (known.has(id) && !teamIds.includes(id)) teamIds.push(id);
+      }
+      const stages = state.stages?.map((s) => (s.id === finals.id ? { ...s, teamIds } : s));
+      return touch({ ...state, stages });
+    }
+    case "removeFinalist": {
+      const stages = state.stages?.map((s) =>
+        s.kind === "final" ? { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) } : s,
+      );
+      return touch({ ...state, stages });
+    }
+    case "assignMatchesToStage": {
+      const stage = state.stages?.find((s) => s.id === action.stageId);
+      if (!stage) return state;
+      const matches = state.matches.map((m) => (m.stageId ? m : { ...m, stageId: stage.id }));
+      return touch({ ...state, matches: compactMatchDaysByStage(matches) });
+    }
     case "addMatch": {
-      const m = appendMatch(state.teams, state.matches, { day: action.day });
+      const staged = (state.stages?.length ?? 0) > 0;
+      const stageId = staged
+        ? state.activeStageId ?? state.stages?.find((s) => s.kind === "group")?.id
+        : undefined;
+      const m = appendMatch(state.teams, state.matches, {
+        day: action.day,
+        stageId: stageId ?? undefined,
+      });
       return touch({
         ...state,
         matches: [...state.matches, m],
@@ -209,10 +363,12 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     }
     case "removeMatch": {
       if (state.matches.length <= 1) return state;
-      const matches = compactMatchDays(state.matches.filter((m) => m.id !== action.matchId));
+      const matches = compactMatchDaysByStage(state.matches.filter((m) => m.id !== action.matchId));
       let activeMatchId = state.activeMatchId;
       if (activeMatchId === action.matchId) {
-        activeMatchId = matches[0]?.id ?? null;
+        const removed = state.matches.find((m) => m.id === action.matchId);
+        activeMatchId =
+          matches.find((m) => m.stageId === removed?.stageId)?.id ?? matches[0]?.id ?? null;
       }
       return touch({ ...state, matches, activeMatchId });
     }
@@ -240,10 +396,10 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
     case "setActiveMatch":
       return touch({ ...state, activeMatchId: action.matchId });
     case "clearAllScores": {
-      const matches = state.matches.map((m) => ({
-        ...m,
-        results: emptyResultsForTeams(state.teams),
-      }));
+      const matches = state.matches.map((m) => {
+        if (action.stageId && m.stageId !== action.stageId) return m;
+        return { ...m, results: emptyResultsForTeams(state.teams) };
+      });
       return touch({ ...state, matches });
     }
     case "clearMatchScores": {
@@ -277,9 +433,15 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
           next = normalizeMatchTeamResult(team, next);
         }
         const placementPatched = action.patch.placement !== undefined;
+        const stage = state.stages?.find((s) => s.id === m.stageId);
+        const field = stage
+          ? stage.teamIds
+              .map((id) => state.teams.find((t) => t.id === id))
+              .filter((t): t is Team => t != null)
+          : state.teams;
         const results =
           placementPatched && next.placement !== null
-            ? applyExclusivePlacement(m.results, state.teams, action.teamId, next)
+            ? applyExclusivePlacement(m.results, field, action.teamId, next)
             : { ...m.results, [action.teamId]: next };
         return {
           ...m,
@@ -307,6 +469,7 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
 
       let teams = [...state.teams];
       let matches = state.matches.map((m) => ({ ...m, results: { ...m.results } }));
+      let stages = state.stages;
 
       const createdIdByNorm = new Map<string, string>();
 
@@ -339,6 +502,14 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         };
         teams.push(team);
         createdIdByNorm.set(norm, team.id);
+        const target = state.matches.find((m) => m.id === targetMatchId);
+        if (target?.stageId) {
+          stages = stages?.map((s) =>
+            s.id === target.stageId && !s.teamIds.includes(team.id)
+              ? { ...s, teamIds: [...s.teamIds, team.id] }
+              : s,
+          );
+        }
         matches = matches.map((m) => ({
           ...m,
           results: {
@@ -396,7 +567,7 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         return { ...m, results: deduped };
       });
 
-      return touch({ ...state, teams, matches });
+      return touch({ ...state, teams, matches, stages });
     }
     default:
       return state;
@@ -415,13 +586,14 @@ const TournamentContext = createContext<Ctx | null>(null);
 function getInitialStateLocal(): Tournament {
   const loaded = loadTournament();
   if (loaded) {
-    const matches = ensureAllMatchesShape(loaded.matches, loaded.teams);
+    const normalized = normalizeTournament(loaded);
+    const matches = ensureAllMatchesShape(normalized.matches, normalized.teams);
     const activeMatchId =
-      loaded.activeMatchId && matches.some((m) => m.id === loaded.activeMatchId)
-        ? loaded.activeMatchId
+      normalized.activeMatchId && matches.some((m) => m.id === normalized.activeMatchId)
+        ? normalized.activeMatchId
         : matches[0]?.id ?? null;
     return {
-      ...loaded,
+      ...normalized,
       matches,
       activeMatchId,
     };

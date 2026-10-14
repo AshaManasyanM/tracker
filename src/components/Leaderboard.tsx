@@ -7,10 +7,12 @@ export function Leaderboard({
   teams,
   matches,
   compact,
+  title = "Live standings",
 }: {
   teams: Team[];
   matches: Match[];
   compact?: boolean;
+  title?: string;
 }) {
   const rows = useMemo(() => computeStandings(teams, matches), [teams, matches]);
   const noScoresYet = rows.length > 0 && rows.every((r) => r.matchesPlayed === 0);
@@ -26,7 +28,7 @@ export function Leaderboard({
   return (
     <div className="overflow-hidden rounded-xl border border-line bg-canvas-overlay shadow-panel">
       <div className="flex items-center justify-between border-b border-line px-3 py-2 sm:px-4">
-        <h2 className="text-sm font-semibold text-slate-100">Live standings</h2>
+        <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
         <span className="text-xs text-slate-500">
           {noScoresYet ? "No scores yet" : `${matches.length} matches`}
         </span>

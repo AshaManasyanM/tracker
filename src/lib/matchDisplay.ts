@@ -49,6 +49,25 @@ export function latestScoredMatchDay(matches: Match[]): number {
   return max > 0 ? max : latestMatchDay(matches);
 }
 
+/** Renumber days inside each stage so one group's schedule does not shift another's. */
+export function compactMatchDaysByStage(matches: Match[]): Match[] {
+  const indexes = new Map<string, number[]>();
+  matches.forEach((m, i) => {
+    const key = m.stageId ?? "";
+    const list = indexes.get(key) ?? [];
+    list.push(i);
+    indexes.set(key, list);
+  });
+  const next = matches.slice();
+  for (const list of indexes.values()) {
+    const compacted = compactMatchDays(list.map((i) => matches[i]!));
+    list.forEach((idx, j) => {
+      next[idx] = compacted[j]!;
+    });
+  }
+  return next;
+}
+
 /** Renumber days 1…N after deletions so gaps disappear (e.g. only Day 2 left → Day 1). */
 export function compactMatchDays(matches: Match[]): Match[] {
   const usedDays = [

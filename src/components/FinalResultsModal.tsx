@@ -21,6 +21,7 @@ import {
   RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { standingsGraphicMeta } from "../lib/standingsGraphicMeta";
+import { activeStage, matchesInStage, stageById, stagesEnabled, teamsInStage } from "../lib/stages";
 import { FastResGraphic } from "./FastResGraphic";
 import { FinalStageGraphic } from "./FinalStageGraphic";
 
@@ -73,10 +74,13 @@ export function FinalResultsModal({
   open,
   onClose,
   tournament,
+  stageId,
 }: {
   open: boolean;
   onClose: () => void;
   tournament: Tournament;
+  /** Group or finals to export. Omit to use the active stage, or the whole field when groups are off. */
+  stageId?: string | null;
 }) {
   const finalRef = useRef<HTMLDivElement>(null);
   const fastResRef = useRef<HTMLDivElement>(null);
@@ -85,20 +89,39 @@ export function FinalResultsModal({
   const [downloading, setDownloading] = useState<GraphicVariant | null>(null);
   const [finalHeight, setFinalHeight] = useState(RESULTS_EXPORT_MAX_H);
   const [fastResHeight, setFastResHeight] = useState(RESULTS_EXPORT_MAX_H);
+  const view = useMemo(() => {
+    const stage = stagesEnabled(tournament)
+      ? stageById(tournament, stageId) ?? activeStage(tournament)
+      : null;
+    if (!stage) {
+      return {
+        teams: tournament.teams,
+        matches: tournament.matches,
+        title: tournament.name,
+        fileTag: "",
+      };
+    }
+    return {
+      teams: teamsInStage(tournament, stage),
+      matches: matchesInStage(tournament, stage),
+      title: `${tournament.name} · ${stage.name}`,
+      fileTag: stage.name,
+    };
+  }, [tournament, stageId]);
   const rows = useMemo(
-    () => computeStandings(tournament.teams, tournament.matches),
-    [tournament.teams, tournament.matches],
+    () => computeStandings(view.teams, view.matches),
+    [view.teams, view.matches],
   );
 
   const finalStageProps = useMemo(() => {
-    const meta = standingsGraphicMeta(tournament.matches);
+    const meta = standingsGraphicMeta(view.matches);
     return {
-      tournamentName: tournament.name,
+      tournamentName: view.title,
       rows,
       matchCurrent: meta.matchCurrent,
       matchTotal: meta.matchTotal,
     };
-  }, [tournament.name, tournament.matches, rows]);
+  }, [view.title, view.matches, rows]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -111,7 +134,7 @@ export function FinalResultsModal({
     const ro = new ResizeObserver(measure);
     for (const n of nodes) ro.observe(n);
     return () => ro.disconnect();
-  }, [open, tournament, finalStageProps]);
+  }, [open, tournament, stageId, finalStageProps]);
 
   useEffect(() => {
     if (!open) return;
@@ -141,15 +164,17 @@ export function FinalResultsModal({
         const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH, undefined, 1);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
+        const stageSlug = slugifyFilename(view.fileTag);
         const suffix = variant === "final" ? "photo" : "fast_res";
-        downloadPngBlob(blob, `${base}_${suffix}_${stamp}.png`);
+        const parts = [base, stageSlug, suffix, stamp].filter(Boolean);
+        downloadPngBlob(blob, `${parts.join("_")}.png`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
       } finally {
         setDownloading(null);
       }
     },
-    [tournament.name],
+    [tournament.name, view.fileTag],
   );
 
   if (!open) return null;
@@ -176,7 +201,7 @@ export function FinalResultsModal({
               Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              Photo poster · FAST RES
+              {view.title} · Photo poster · FAST RES
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

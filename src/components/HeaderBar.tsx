@@ -11,6 +11,7 @@ import { saveLocalScratchAsCloudTournament } from "../lib/tournamentDb";
 import type { Tournament } from "../types/tournament";
 import { STORAGE_KEY } from "../types/tournament";
 import { forkEmptyTournamentKeepId } from "../lib/tournamentDefaults";
+import { stageSlice } from "../lib/stages";
 
 function downloadJson(filename: string, data: unknown) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
@@ -26,6 +27,7 @@ export function HeaderBar() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { tournament, dispatch, saveStatus, persistMode } = useTournament();
+  const slice = stageSlice(tournament);
   const [nameDraft, setNameDraft] = useState(tournament.name);
   const fileRef = useRef<HTMLInputElement>(null);
   const jsonBtnRef = useRef<HTMLButtonElement>(null);
@@ -213,9 +215,9 @@ export function HeaderBar() {
             <span className="hidden sm:inline">Standings graphic</span>
           </button>
           <MvpGraphicsControls
-            teams={tournament.teams}
-            matches={tournament.matches}
-            tournamentName={tournament.name}
+            teams={slice.teams}
+            matches={slice.matches}
+            tournamentName={slice.active ? `${tournament.name} · ${slice.active.name}` : tournament.name}
           />
           <button
             ref={jsonBtnRef}
@@ -329,6 +331,7 @@ export function HeaderBar() {
         open={finalOpen}
         onClose={() => setFinalOpen(false)}
         tournament={tournament}
+        stageId={slice.active?.id}
       />
     </header>
   );
