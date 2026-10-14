@@ -1,7 +1,5 @@
 /** Group stage results PNG width; height fits content up to max. */
 export const RESULTS_EXPORT_W = 1080;
-/** Landscape board: two columns of teams side by side. */
-export const SPLIT_RESULTS_EXPORT_W = 1920;
 export const RESULTS_EXPORT_MAX_H = 1350;
 /** Final stage standings (tall header + 16+ rows) needs a higher cap. */
 export const FINAL_STAGE_EXPORT_MAX_H = 2400;
@@ -16,8 +14,3 @@ export const GRAPHIC_TEXT_MUTED = "rgba(220, 228, 240, 0.72)";
 export const ALPHA7_LOGO_URL = "/alpha7-logo.png";
 /** Full-bleed photo behind standings / results boards. */
 export const RESULTS_BG_URL = "/results-bg.jpg";
-
-/** Legacy broadcast palette (Official standings graphic). */
-export const GRAPHIC_OFFICIAL_BG = "rgb(7, 11, 20)";
-export const GRAPHIC_OFFICIAL_GOLD = "rgb(230, 193, 90)";
-export const GRAPHIC_OFFICIAL_GOLD_RGB = "230, 193, 90";

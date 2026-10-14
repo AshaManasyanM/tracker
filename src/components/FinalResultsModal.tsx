@@ -17,20 +17,17 @@ import {
 } from "../lib/graphicCapture";
 import {
   FINAL_STAGE_EXPORT_MAX_H,
-  GRAPHIC_OFFICIAL_BG,
   RESULTS_EXPORT_MAX_H,
   RESULTS_EXPORT_W,
-  SPLIT_RESULTS_EXPORT_W,
 } from "../lib/graphicTheme";
 import { standingsGraphicMeta } from "../lib/standingsGraphicMeta";
 import { FastResGraphic } from "./FastResGraphic";
-import { FinalResultsGraphicOfficial } from "./FinalResultsGraphicOfficial";
 import { FinalStageGraphic } from "./FinalStageGraphic";
 
 const PREVIEW_SCALE = 0.42;
 const PREVIEW_GAP_PX = 40;
 
-type GraphicVariant = "final" | "official" | "fastres";
+type GraphicVariant = "final" | "fastres";
 
 function GraphicPreview({
   label,
@@ -82,14 +79,11 @@ export function FinalResultsModal({
   tournament: Tournament;
 }) {
   const finalRef = useRef<HTMLDivElement>(null);
-  const officialRef = useRef<HTMLDivElement>(null);
   const fastResRef = useRef<HTMLDivElement>(null);
   const finalPreviewInnerRef = useRef<HTMLDivElement>(null);
-  const officialPreviewInnerRef = useRef<HTMLDivElement>(null);
   const fastResPreviewInnerRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState<GraphicVariant | null>(null);
   const [finalHeight, setFinalHeight] = useState(RESULTS_EXPORT_MAX_H);
-  const [officialHeight, setOfficialHeight] = useState(RESULTS_EXPORT_MAX_H);
   const [fastResHeight, setFastResHeight] = useState(RESULTS_EXPORT_MAX_H);
   const rows = useMemo(
     () => computeStandings(tournament.teams, tournament.matches),
@@ -106,31 +100,18 @@ export function FinalResultsModal({
     };
   }, [tournament.name, tournament.matches, rows]);
 
-  const officialProps = useMemo(() => {
-    const meta = standingsGraphicMeta(tournament.matches);
-    return {
-      tournamentName: tournament.name,
-      rows,
-      matchCurrent: meta.matchCurrent,
-      matchTotal: meta.matchTotal,
-    };
-  }, [tournament.name, tournament.matches, rows]);
-
   useLayoutEffect(() => {
     if (!open) return;
     const measure = () => {
       setFinalHeight(measureGraphicExportHeight(finalRef.current, FINAL_STAGE_EXPORT_MAX_H));
-      setOfficialHeight(measureGraphicExportHeight(officialRef.current, RESULTS_EXPORT_MAX_H));
       setFastResHeight(measureGraphicExportHeight(fastResRef.current, FINAL_STAGE_EXPORT_MAX_H));
     };
     measure();
-    const nodes = [finalRef.current, officialRef.current, fastResRef.current].filter(
-      Boolean,
-    ) as HTMLElement[];
+    const nodes = [finalRef.current, fastResRef.current].filter(Boolean) as HTMLElement[];
     const ro = new ResizeObserver(measure);
     for (const n of nodes) ro.observe(n);
     return () => ro.disconnect();
-  }, [open, tournament, finalStageProps, officialProps]);
+  }, [open, tournament, finalStageProps]);
 
   useEffect(() => {
     if (!open) return;
@@ -152,24 +133,15 @@ export function FinalResultsModal({
 
   const downloadPng = useCallback(
     async (variant: GraphicVariant) => {
-      const el =
-        variant === "final"
-          ? finalRef.current
-          : variant === "official"
-            ? officialRef.current
-            : fastResRef.current;
+      const el = variant === "final" ? finalRef.current : fastResRef.current;
       if (!el) return;
       setDownloading(variant);
       try {
-        const bg = variant === "official" ? GRAPHIC_OFFICIAL_BG : undefined;
-        const maxH = variant === "official" ? RESULTS_EXPORT_MAX_H : FINAL_STAGE_EXPORT_MAX_H;
-        const exportW = variant === "official" ? SPLIT_RESULTS_EXPORT_W : RESULTS_EXPORT_W;
-        const exportH = measureGraphicExportHeight(el, maxH);
-        const blob = await captureVisibleGraphic(el, exportW, exportH, bg, 1);
+        const exportH = measureGraphicExportHeight(el, FINAL_STAGE_EXPORT_MAX_H);
+        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH, undefined, 1);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
-        const suffix =
-          variant === "final" ? "photo" : variant === "official" ? "split_8_8" : "fast_res";
+        const suffix = variant === "final" ? "photo" : "fast_res";
         downloadPngBlob(blob, `${base}_${suffix}_${stamp}.png`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
@@ -204,7 +176,7 @@ export function FinalResultsModal({
               Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              Photo poster · 8–8 side by side · FAST RES
+              Photo poster · FAST RES
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -215,14 +187,6 @@ export function FinalResultsModal({
               className="rounded-lg border border-[#c9a227]/50 bg-gradient-to-b from-[#3a3018] to-[#1a150a] px-4 py-2.5 text-sm font-semibold text-[#fff3cc] shadow-[0_0_24px_rgba(201,162,39,0.25)] hover:from-[#4a3f22] hover:to-[#221c0e] disabled:cursor-wait disabled:opacity-60"
             >
               {downloading === "final" ? "Rendering…" : "Download photo"}
-            </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void downloadPng("official")}
-              className="rounded-lg border border-line bg-canvas-overlay px-4 py-2.5 text-sm font-semibold text-slate-100 hover:border-white/20 disabled:cursor-wait disabled:opacity-60"
-            >
-              {downloading === "official" ? "Rendering…" : "Download 8–8"}
             </button>
             <button
               type="button"
@@ -249,15 +213,6 @@ export function FinalResultsModal({
             previewInnerRef={finalPreviewInnerRef}
           >
             <FinalStageGraphic ref={finalRef} {...finalStageProps} />
-          </GraphicPreview>
-
-          <GraphicPreview
-            label="8–8 side by side"
-            contentHeight={officialHeight}
-            previewInnerRef={officialPreviewInnerRef}
-            exportWidth={SPLIT_RESULTS_EXPORT_W}
-          >
-            <FinalResultsGraphicOfficial ref={officialRef} {...officialProps} />
           </GraphicPreview>
 
           <GraphicPreview
