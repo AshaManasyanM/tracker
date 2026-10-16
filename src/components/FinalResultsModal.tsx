@@ -98,13 +98,15 @@ export function FinalResultsModal({
         teams: tournament.teams,
         matches: tournament.matches,
         title: tournament.name,
+        heading: "Եզրափակիչ փուլ",
         fileTag: "",
       };
     }
     return {
       teams: teamsInStage(tournament, stage),
       matches: matchesInStage(tournament, stage),
-      title: `${tournament.name} · ${stage.name}`,
+      title: tournament.name,
+      heading: stage.kind === "group" ? stage.name : "Եզրափակիչ փուլ",
       fileTag: stage.name,
     };
   }, [tournament, stageId]);
@@ -117,11 +119,12 @@ export function FinalResultsModal({
     const meta = standingsGraphicMeta(view.matches);
     return {
       tournamentName: view.title,
+      heading: view.heading,
       rows,
       matchCurrent: meta.matchCurrent,
       matchTotal: meta.matchTotal,
     };
-  }, [view.title, view.matches, rows]);
+  }, [view.title, view.heading, view.matches, rows]);
 
   useLayoutEffect(() => {
     if (!open) return;

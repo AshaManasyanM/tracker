@@ -8,6 +8,8 @@ export type FastResGraphicProps = {
   rows: TeamStanding[];
   matchCurrent: number;
   matchTotal: number;
+  /** Group name, or the finals title. Omitted on a single-field board. */
+  heading?: string;
 };
 
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
@@ -182,7 +184,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
 }
 
 export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(function FastResGraphic(
-  { tournamentName, rows, matchCurrent, matchTotal },
+  { tournamentName, rows, matchCurrent, matchTotal, heading },
   ref,
 ) {
   return (
@@ -251,6 +253,21 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
               FAST{" "}
               <span style={{ color: CYAN }}>RES</span>
             </p>
+            {heading ? (
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  fontFamily: FONT_DISPLAY,
+                  fontSize: 22,
+                  fontWeight: 700,
+                  lineHeight: 1.1,
+                  color: "#FFFFFF",
+                  wordBreak: "break-word",
+                }}
+              >
+                {heading}
+              </p>
+            ) : null}
             <p
               style={{
                 margin: "4px 0 0",

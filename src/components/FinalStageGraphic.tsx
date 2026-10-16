@@ -12,6 +12,8 @@ export type FinalStageGraphicProps = {
   matchCurrent: number;
   matchTotal: number;
   standingsSubtitle?: string;
+  /** Big title. Group tables use the group name; finals keep the default. */
+  heading?: string;
 };
 
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
@@ -27,7 +29,7 @@ const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
 const SIDE_PAD = 18;
-const FOOTER_TEXT = "Եզրափակիչ փուլ • Ընդհանուր աղյուսակ";
+const DEFAULT_HEADING = "Եզրափակիչ փուլ";
 
 function placeTone(rank: number): { background: string; rank: string } {
   if (rank === 1) return { background: "rgba(230, 193, 90, 0.18)", rank: "#E6C15A" };
@@ -290,6 +292,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
       matchCurrent,
       matchTotal,
       standingsSubtitle = "Ընդհանուր աղյուսակ",
+      heading = DEFAULT_HEADING,
     },
     ref,
   ) {
@@ -341,7 +344,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 color: NAME_COLOR,
               }}
             >
-              Եզրափակիչ փուլ
+              {heading}
             </h1>
             <p
               style={{
@@ -399,7 +402,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               color: "rgba(246, 243, 234, 0.55)",
             }}
           >
-            {FOOTER_TEXT}
+            {heading} • Ընդհանուր աղյուսակ
           </p>
         </div>
       </div>
