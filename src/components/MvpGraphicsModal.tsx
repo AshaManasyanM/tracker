@@ -189,7 +189,7 @@ export function MvpGraphicsModal({
               MVP graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              1080px wide · height fits content · boy and girl separate PNGs
+              Same width as the standings boards · boy and girl separate PNGs
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

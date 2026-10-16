@@ -70,7 +70,7 @@ export const MvpGraphic = forwardRef<HTMLDivElement, MvpGraphicProps>(function M
 
       <div
         className="relative z-10 flex flex-col"
-        style={{ padding: "14px 18px 12px", boxSizing: "border-box" }}
+        style={{ padding: "14px 14px 12px", boxSizing: "border-box" }}
       >
         <header className="shrink-0 text-center" style={{ paddingBottom: 8 }}>
           <p

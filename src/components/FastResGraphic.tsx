@@ -226,7 +226,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
 
       <div
         className="relative z-10 flex flex-col"
-        style={{ padding: "14px 18px 12px", boxSizing: "border-box" }}
+        style={{ padding: "14px 14px 12px", boxSizing: "border-box" }}
       >
         <header
           style={{

@@ -28,7 +28,7 @@ const TABLE_BG = "rgba(5, 8, 16, 0.58)";
 const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
-const SIDE_PAD = 18;
+const SIDE_PAD = 14;
 const DEFAULT_HEADING = "Եզրափակիչ փուլ";
 
 function placeTone(rank: number): { background: string; rank: string } {

@@ -1,5 +1,5 @@
-/** Group stage results PNG width; height fits content up to max. */
-export const RESULTS_EXPORT_W = 1080;
+/** Standings and MVP PNG width. Narrower than 1080 so rows stay compact. */
+export const RESULTS_EXPORT_W = 820;
 export const RESULTS_EXPORT_MAX_H = 1350;
 /** Final stage standings (tall header + 16+ rows) needs a higher cap. */
 export const FINAL_STAGE_EXPORT_MAX_H = 2400;
