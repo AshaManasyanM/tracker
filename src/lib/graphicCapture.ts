@@ -1,7 +1,8 @@
 import { toBlob } from "html-to-image";
 import { GRAPHIC_BG } from "./graphicTheme";
 
-const EXPORT_PIXEL_RATIO = 2;
+/** 6× keeps text and logos sharp when the board is posted or viewed large. */
+const EXPORT_PIXEL_RATIO = 6;
 
 export async function waitForGraphicImages(root: HTMLElement): Promise<void> {
   const imgs = [...root.querySelectorAll("img")];

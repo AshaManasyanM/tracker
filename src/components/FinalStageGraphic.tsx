@@ -24,17 +24,17 @@ const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
 const GOLD = "#E6C15A";
 const GOLD_DIM = "rgba(230, 193, 90, 0.55)";
 const PAGE_BG = "#070b14";
-const TABLE_BG = "rgba(5, 8, 16, 0.58)";
+const TABLE_BG = "rgba(5, 8, 16, 0.44)";
 const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
-const SIDE_PAD = 18;
+const SIDE_PAD = 14;
 const DEFAULT_HEADING = "Եզրափակիչ փուլ";
 
 function placeTone(rank: number): { background: string; rank: string } {
-  if (rank === 1) return { background: "rgba(230, 193, 90, 0.18)", rank: "#E6C15A" };
-  if (rank === 2) return { background: "rgba(214, 220, 230, 0.14)", rank: "#E4E7EE" };
-  if (rank === 3) return { background: "rgba(184, 122, 66, 0.18)", rank: "#E0A36A" };
+  if (rank === 1) return { background: "rgba(230, 193, 90, 0.12)", rank: "#E6C15A" };
+  if (rank === 2) return { background: "rgba(214, 220, 230, 0.09)", rank: "#E4E7EE" };
+  if (rank === 3) return { background: "rgba(184, 122, 66, 0.12)", rank: "#E0A36A" };
   return { background: "transparent", rank: GOLD };
 }
 
@@ -68,7 +68,7 @@ function BroadcastBackground() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(5, 8, 16, 0.68)",
+          background: "rgba(5, 8, 16, 0.52)",
         }}
       />
     </>

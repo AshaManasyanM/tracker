@@ -164,7 +164,7 @@ export function FinalResultsModal({
       setDownloading(variant);
       try {
         const exportH = measureGraphicExportHeight(el, FINAL_STAGE_EXPORT_MAX_H);
-        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH, undefined, 1);
+        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
         const stageSlug = slugifyFilename(view.fileTag);

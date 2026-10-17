@@ -44,7 +44,7 @@ export function MvpGraphicsControls({
       <button
         type="button"
         className="rounded-lg border border-[#c9a227]/40 bg-gradient-to-b from-[#2a2312]/90 to-[#120f08] px-3 py-2 text-sm font-semibold text-[#f5e6b8] shadow-[0_0_20px_rgba(201,162,39,0.15)] hover:border-[#e8c547]/60 hover:from-[#3a3018] hover:to-[#1a150a]"
-        title="Preview boy and girl MVP graphics (1080px each), download separately"
+        title="Preview boy and girl MVP graphics, download separately"
         onClick={() => setOpen(true)}
       >
         <span className="sm:hidden">MVP</span>

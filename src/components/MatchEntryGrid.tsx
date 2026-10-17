@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useTournament } from "../state/TournamentContext";
 import type { Match, Team } from "../types/tournament";
 import { matchPointsForTeam } from "../lib/scoring";
@@ -21,6 +21,57 @@ function placeFieldPlaceholder(
   if (placement !== null) return "—";
   if (!teamHasPlacementInAnyMatch(teamId, matches)) return "-";
   return "Place";
+}
+
+function NumberField({
+  value,
+  blankWhenZero = false,
+  disabled,
+  className,
+  ariaLabel,
+  title,
+  placeholder,
+  onValue,
+}: {
+  value: number | null;
+  /** Show 0 as an empty box so the next digits are not stuck behind a zero. */
+  blankWhenZero?: boolean;
+  disabled?: boolean;
+  className?: string;
+  ariaLabel: string;
+  title?: string;
+  placeholder?: string;
+  onValue: (n: number | null) => void;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const stored = value == null || (blankWhenZero && value === 0) ? "" : String(value);
+
+  return (
+    <input
+      disabled={disabled}
+      aria-label={ariaLabel}
+      title={title}
+      placeholder={placeholder}
+      inputMode="numeric"
+      className={className}
+      value={draft ?? stored}
+      onFocus={(e) => {
+        setDraft(stored);
+        e.currentTarget.select();
+      }}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/[^\d]/g, "");
+        setDraft(raw);
+        if (raw === "") {
+          onValue(null);
+          return;
+        }
+        const n = Number(raw);
+        if (Number.isFinite(n)) onValue(n);
+      }}
+      onBlur={() => setDraft(null)}
+    />
+  );
 }
 
 function useTeamRows(teams: Team[], teamSearch: string) {
@@ -136,64 +187,39 @@ function TeamMatchCard({
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
         <label className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
           <span className="w-7 text-right">Pl</span>
-          <input
-            aria-label={`${team.name} placement`}
-            inputMode="numeric"
+          <NumberField
+            ariaLabel={`${team.name} placement`}
             className={`${inputClass}${showHashPlace ? " placeholder:text-slate-400" : ""}`}
-            value={dnp ? "" : String(r.placement ?? "")}
+            value={r.placement}
             placeholder={placePlaceholder}
             title={showHashPlace ? "No placement in any match yet" : undefined}
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              if (raw === "" || raw === "-" || raw === "#") {
-                dispatch({
-                  type: "setMatchResult",
-                  matchId: match.id,
-                  teamId: team.id,
-                  patch: { placement: null },
-                });
-                return;
-              }
-              const n = Number(raw);
-              if (!Number.isFinite(n)) return;
+            onValue={(n) =>
               dispatch({
                 type: "setMatchResult",
                 matchId: match.id,
                 teamId: team.id,
                 patch: { placement: n },
-              });
-            }}
+              })
+            }
           />
         </label>
         <label className="flex shrink-0 items-center gap-1 text-[10px] text-slate-500">
           <span className="w-7 text-right">K</span>
           {roster.length === 0 ? (
-            <input
+            <NumberField
               disabled={dnp}
-              aria-label={`${team.name} kills`}
-              inputMode="numeric"
+              blankWhenZero
+              ariaLabel={`${team.name} kills`}
               className={`${inputClass} disabled:opacity-40`}
-              value={dnp ? "" : String(r.kills)}
-              onChange={(e) => {
-                const raw = e.target.value.trim();
-                if (raw === "") {
-                  dispatch({
-                    type: "setMatchResult",
-                    matchId: match.id,
-                    teamId: team.id,
-                    patch: { kills: 0 },
-                  });
-                  return;
-                }
-                const n = Number(raw);
-                if (!Number.isFinite(n)) return;
+              value={dnp ? null : r.kills}
+              onValue={(n) =>
                 dispatch({
                   type: "setMatchResult",
                   matchId: match.id,
                   teamId: team.id,
-                  patch: { kills: n },
-                });
-              }}
+                  patch: { kills: n ?? 0 },
+                })
+              }
             />
           ) : (
             <span
@@ -217,24 +243,21 @@ function TeamMatchCard({
           {roster.map((p) => (
             <li key={p.id} className="flex items-center justify-between gap-2 text-xs">
               <span className="min-w-0 flex-1 truncate text-slate-400">{p.name}</span>
-              <input
+              <NumberField
                 disabled={dnp}
-                aria-label={`${team.name} ${p.name} elims`}
-                inputMode="numeric"
+                blankWhenZero
+                ariaLabel={`${team.name} ${p.name} elims`}
                 className="w-16 shrink-0 rounded border border-line bg-canvas px-2 py-1.5 text-center font-mono tabular-nums text-slate-100 disabled:opacity-40"
-                value={dnp ? "" : String(pk[p.id] ?? 0)}
-                onChange={(e) => {
-                  const raw = e.target.value.trim();
-                  const n = raw === "" ? 0 : Number(raw);
-                  if (!Number.isFinite(n)) return;
+                value={dnp ? null : (pk[p.id] ?? 0)}
+                onValue={(n) =>
                   dispatch({
                     type: "setMatchPlayerKills",
                     matchId: match.id,
                     teamId: team.id,
                     playerId: p.id,
-                    kills: n,
-                  });
-                }}
+                    kills: n ?? 0,
+                  })
+                }
               />
             </li>
           ))}
@@ -276,24 +299,21 @@ function TeamMatchTableRow({
                 {roster.map((p) => (
                   <div key={p.id} className="flex items-center gap-2 text-xs">
                     <span className="w-[100px] shrink-0 truncate text-slate-400">{p.name}</span>
-                    <input
+                    <NumberField
                       disabled={dnp}
-                      aria-label={`${team.name} ${p.name} elims`}
-                      inputMode="numeric"
+                      blankWhenZero
+                      ariaLabel={`${team.name} ${p.name} elims`}
                       className="w-16 rounded border border-line bg-canvas px-1.5 py-1 text-left font-mono tabular-nums text-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-                      value={dnp ? "" : String(pk[p.id] ?? 0)}
-                      onChange={(e) => {
-                        const raw = e.target.value.trim();
-                        const n = raw === "" ? 0 : Number(raw);
-                        if (!Number.isFinite(n)) return;
+                      value={dnp ? null : (pk[p.id] ?? 0)}
+                      onValue={(n) =>
                         dispatch({
                           type: "setMatchPlayerKills",
                           matchId: match.id,
                           teamId: team.id,
                           playerId: p.id,
-                          kills: n,
-                        });
-                      }}
+                          kills: n ?? 0,
+                        })
+                      }
                     />
                   </div>
                 ))}
@@ -303,8 +323,8 @@ function TeamMatchTableRow({
         </div>
       </td>
       <td className="align-middle py-3 px-2 text-center sm:py-4 sm:px-3">
-        <input
-          aria-label={`${team.name} placement`}
+        <NumberField
+          ariaLabel={`${team.name} placement`}
           title={
             showHashPlace
               ? "No placement in any match yet — enter a place for this map"
@@ -312,60 +332,35 @@ function TeamMatchTableRow({
                 ? "Enter placement to count this lobby (clear to skip team for this round)"
                 : undefined
           }
-          inputMode="numeric"
           className={`mx-auto w-full max-w-[5rem] rounded-md border border-line bg-canvas px-2 py-1.5 text-center font-mono tabular-nums text-slate-100${showHashPlace ? " placeholder:text-slate-400" : ""}`}
-          value={dnp ? "" : String(r.placement ?? "")}
+          value={r.placement}
           placeholder={placePlaceholder}
-          onChange={(e) => {
-            const raw = e.target.value.trim();
-            if (raw === "" || raw === "-" || raw === "#") {
-              dispatch({
-                type: "setMatchResult",
-                matchId: match.id,
-                teamId: team.id,
-                patch: { placement: null },
-              });
-              return;
-            }
-            const n = Number(raw);
-            if (!Number.isFinite(n)) return;
+          onValue={(n) =>
             dispatch({
               type: "setMatchResult",
               matchId: match.id,
               teamId: team.id,
               patch: { placement: n },
-            });
-          }}
+            })
+          }
         />
       </td>
       <td className="align-middle py-3 px-2 text-center sm:py-4 sm:px-3">
         {roster.length === 0 ? (
-          <input
+          <NumberField
             disabled={dnp}
-            aria-label={`${team.name} kills`}
-            inputMode="numeric"
+            blankWhenZero
+            ariaLabel={`${team.name} kills`}
             className="mx-auto w-full max-w-[100px] rounded-md border border-line bg-canvas px-2 py-1.5 text-center font-mono tabular-nums text-slate-100 disabled:cursor-not-allowed disabled:opacity-40"
-            value={dnp ? "" : String(r.kills)}
-            onChange={(e) => {
-              const raw = e.target.value.trim();
-              if (raw === "") {
-                dispatch({
-                  type: "setMatchResult",
-                  matchId: match.id,
-                  teamId: team.id,
-                  patch: { kills: 0 },
-                });
-                return;
-              }
-              const n = Number(raw);
-              if (!Number.isFinite(n)) return;
+            value={dnp ? null : r.kills}
+            onValue={(n) =>
               dispatch({
                 type: "setMatchResult",
                 matchId: match.id,
                 teamId: team.id,
-                patch: { kills: n },
-              });
-            }}
+                patch: { kills: n ?? 0 },
+              })
+            }
           />
         ) : (
           <div className="text-center font-mono text-sm tabular-nums text-slate-200">
