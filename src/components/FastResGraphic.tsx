@@ -15,19 +15,20 @@ export type FastResGraphicProps = {
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
-const NAME_COLOR = "#FFFFFF";
-const STAT_COLOR = "rgba(214, 236, 255, 0.72)";
-const CYAN = "#22D3EE";
-const CYAN_DIM = "rgba(34, 211, 238, 0.45)";
-const PAGE_BG = "#04101c";
-const TABLE_BG = "rgba(4, 14, 32, 0.48)";
-const ROW_LINE = "rgba(160, 220, 255, 0.12)";
+const NAME_COLOR = "#F6F3EA";
+/* Same palette as the photo poster (FinalStageGraphic). */
+const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
+const GOLD = "#E6C15A";
+const GOLD_DIM = "rgba(230, 193, 90, 0.55)";
+const PAGE_BG = "#070b14";
+const TABLE_BG = "rgba(5, 8, 16, 0.44)";
+const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 function placeTone(rank: number): { background: string; rank: string } {
-  if (rank === 1) return { background: "rgba(34, 211, 238, 0.12)", rank: "#67E8F9" };
-  if (rank === 2) return { background: "rgba(56, 140, 220, 0.1)", rank: "#7DD3FC" };
-  if (rank === 3) return { background: "rgba(30, 78, 160, 0.16)", rank: "#93C5FD" };
-  return { background: "transparent", rank: CYAN };
+  if (rank === 1) return { background: "rgba(230, 193, 90, 0.12)", rank: "#E6C15A" };
+  if (rank === 2) return { background: "rgba(214, 220, 230, 0.09)", rank: "#E4E7EE" };
+  if (rank === 3) return { background: "rgba(184, 122, 66, 0.12)", rank: "#E0A36A" };
+  return { background: "transparent", rank: GOLD };
 }
 
 function hasStandingsData(s: TeamStanding): boolean {
@@ -57,7 +58,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
 
   const headTh: CSSProperties = {
     fontFamily: FONT_DISPLAY,
-    color: "rgba(214, 236, 255, 0.7)",
+    color: "rgba(246, 243, 234, 0.72)",
     background: "transparent",
     whiteSpace: "nowrap",
     lineHeight: 1,
@@ -87,7 +88,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
             style={{
               ...numberFontBase,
               fontSize: rankFontPx,
-              color: played ? tone.rank : CYAN_DIM,
+              color: played ? tone.rank : GOLD_DIM,
             }}
           >
             {place}
@@ -133,7 +134,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
             padding: `${rowPadY}px ${totalPadX}px`,
             ...numberFontBase,
             fontSize: totalFontPx,
-            color: played ? CYAN : CYAN_DIM,
+            color: played ? GOLD : GOLD_DIM,
           }}
         >
           {r.totalPoints}
@@ -169,7 +170,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
                   fontSize: headFontPx,
                   padding: `${headPy}px ${isTeam ? 8 : isTotal ? totalPadX : statPadX}px`,
                   borderBottom: `1px solid ${ROW_LINE}`,
-                  color: isTotal ? CYAN : headTh.color,
+                  color: isTotal ? GOLD : headTh.color,
                 }}
               >
                 {label}
@@ -220,7 +221,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(2, 10, 24, 0.64) 0%, rgba(3, 12, 28, 0.56) 40%, rgba(2, 8, 20, 0.66) 100%)",
+            "rgba(5, 8, 16, 0.52)",
         }}
       />
 
@@ -235,7 +236,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             justifyContent: "space-between",
             gap: 16,
             paddingBottom: 10,
-            borderBottom: "1px solid rgba(34, 211, 238, 0.22)",
+            borderBottom: "1px solid rgba(230, 193, 90, 0.3)",
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -251,7 +252,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
               }}
             >
               FAST{" "}
-              <span style={{ color: CYAN }}>RES</span>
+              <span style={{ color: GOLD }}>RES</span>
             </p>
             {heading ? (
               <p
@@ -289,7 +290,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
               fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.06em",
-              color: CYAN,
+              color: GOLD,
               textAlign: "right",
             }}
           >
@@ -302,7 +303,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             style={{
               overflow: "hidden",
               borderRadius: 8,
-              border: "1px solid rgba(34, 211, 238, 0.14)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
               backgroundColor: TABLE_BG,
               padding: "4px 6px 6px",
             }}
@@ -315,7 +316,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
                   textAlign: "center",
                   fontFamily: FONT_DISPLAY,
                   fontSize: 18,
-                  color: CYAN_DIM,
+                  color: GOLD_DIM,
                 }}
               >
                 Այս մրցաշարում թիմեր չկան
