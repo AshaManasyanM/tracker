@@ -23,10 +23,11 @@ function compareStandings(a: TeamStanding, b: TeamStanding): number {
   if (aPlayed !== bPlayed) return aPlayed ? -1 : 1;
 
   if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
+  // Tie on points: more kills ranks higher, then placement points.
+  if (b.totalKills !== a.totalKills) return b.totalKills - a.totalKills;
   if (b.totalPlacementPoints !== a.totalPlacementPoints) {
     return b.totalPlacementPoints - a.totalPlacementPoints;
   }
-  if (b.totalKills !== a.totalKills) return b.totalKills - a.totalKills;
   if (a.bestPlacement !== b.bestPlacement) return a.bestPlacement - b.bestPlacement;
   return b.chickenDinners - a.chickenDinners;
 }
