@@ -15,17 +15,27 @@ export type FastResGraphicProps = {
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
-const NAME_COLOR = "#F6F3EA";
+const NAME_COLOR = "#FFFFFF";
 /* Same palette as the photo poster (FinalStageGraphic). */
-const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
-const GOLD = "#E6C15A";
-const GOLD_DIM = "rgba(230, 193, 90, 0.55)";
-const PAGE_BG = "#070b14";
-const TABLE_BG = "rgba(5, 8, 16, 0.44)";
+const STAT_COLOR = "rgba(255, 255, 255, 0.82)";
+const GOLD = "#F5B82E";
+const GOLD_DIM = "rgba(245, 184, 46, 0.55)";
+const PAGE_BG = "#140c06";
+const TABLE_BG = "rgba(22, 13, 6, 0.42)";
 const ROW_LINE = "rgba(255, 255, 255, 0.08)";
+/** Same gold gradient as the group-draw posters ("GROUP B" title). */
+const GOLD_GRADIENT = "linear-gradient(180deg, #FFE08A 0%, #F5B82E 55%, #D98A0B 100%)";
+const GOLD_TEXT: CSSProperties = {
+  color: GOLD,
+  backgroundImage: GOLD_GRADIENT,
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+};
+
 
 function placeTone(rank: number): { background: string; rank: string } {
-  if (rank === 1) return { background: "rgba(230, 193, 90, 0.12)", rank: "#E6C15A" };
+  if (rank === 1) return { background: "rgba(245, 184, 46, 0.16)", rank: "#FFC94A" };
   if (rank === 2) return { background: "rgba(214, 220, 230, 0.09)", rank: "#E4E7EE" };
   if (rank === 3) return { background: "rgba(184, 122, 66, 0.12)", rank: "#E0A36A" };
   return { background: "transparent", rank: GOLD };
@@ -58,7 +68,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
 
   const headTh: CSSProperties = {
     fontFamily: FONT_DISPLAY,
-    color: "rgba(246, 243, 234, 0.72)",
+    color: "rgba(255, 255, 255, 0.75)",
     background: "transparent",
     whiteSpace: "nowrap",
     lineHeight: 1,
@@ -89,6 +99,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
               ...numberFontBase,
               fontSize: rankFontPx,
               color: played ? tone.rank : GOLD_DIM,
+              ...(played && (place === 1 || place > 3) ? GOLD_TEXT : {}),
             }}
           >
             {place}
@@ -137,7 +148,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
             color: played ? GOLD : GOLD_DIM,
           }}
         >
-          {r.totalPoints}
+          <span style={played ? GOLD_TEXT : undefined}>{r.totalPoints}</span>
         </td>
       </tr>,
     );
@@ -171,6 +182,7 @@ function FastResTable({ rows }: { rows: TeamStanding[] }) {
                   padding: `${headPy}px ${isTeam ? 8 : isTotal ? totalPadX : statPadX}px`,
                   borderBottom: `1px solid ${ROW_LINE}`,
                   color: isTotal ? GOLD : headTh.color,
+                  ...(isTotal ? GOLD_TEXT : {}),
                 }}
               >
                 {label}
@@ -208,11 +220,13 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
         aria-hidden
         style={{
           position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
+          // Oversize slightly so the blur doesn't show soft edges.
+          inset: -8,
+          width: "calc(100% + 16px)",
+          height: "calc(100% + 16px)",
           objectFit: "cover",
           objectPosition: "center 30%",
+          filter: "blur(2px)",
         }}
       />
       <div
@@ -221,7 +235,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
           position: "absolute",
           inset: 0,
           background:
-            "rgba(5, 8, 16, 0.52)",
+            "radial-gradient(ellipse at 50% 45%, rgba(24, 12, 4, 0.08) 0%, rgba(24, 12, 4, 0.42) 100%)",
         }}
       />
 
@@ -236,7 +250,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             justifyContent: "space-between",
             gap: 16,
             paddingBottom: 10,
-            borderBottom: "1px solid rgba(230, 193, 90, 0.3)",
+            borderBottom: "1px solid rgba(245, 184, 46, 0.4)",
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -252,7 +266,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
               }}
             >
               FAST{" "}
-              <span style={{ color: GOLD }}>RES</span>
+              <span style={GOLD_TEXT}>RES</span>
             </p>
             {heading ? (
               <p
@@ -290,7 +304,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
               fontSize: 16,
               fontWeight: 700,
               letterSpacing: "0.06em",
-              color: GOLD,
+              ...GOLD_TEXT,
               textAlign: "right",
             }}
           >
@@ -303,7 +317,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             style={{
               overflow: "hidden",
               borderRadius: 8,
-              border: "1px solid rgba(255, 255, 255, 0.1)",
+              border: "1px solid rgba(255, 255, 255, 0.14)",
               backgroundColor: TABLE_BG,
               padding: "4px 6px 6px",
             }}

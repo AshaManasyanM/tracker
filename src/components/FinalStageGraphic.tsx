@@ -19,20 +19,30 @@ export type FinalStageGraphicProps = {
 const FONT_BOARD = "'Noto Sans Armenian', 'Rajdhani', system-ui, sans-serif";
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
 
-const NAME_COLOR = "#F6F3EA";
-const STAT_COLOR = "rgba(236, 232, 220, 0.72)";
-const GOLD = "#E6C15A";
-const GOLD_DIM = "rgba(230, 193, 90, 0.55)";
-const PAGE_BG = "#070b14";
-const TABLE_BG = "rgba(5, 8, 16, 0.44)";
+const NAME_COLOR = "#FFFFFF";
+const STAT_COLOR = "rgba(255, 255, 255, 0.82)";
+const GOLD = "#F5B82E";
+const GOLD_DIM = "rgba(245, 184, 46, 0.55)";
+const PAGE_BG = "#140c06";
+const TABLE_BG = "rgba(22, 13, 6, 0.42)";
 const ROW_LINE = "rgba(255, 255, 255, 0.08)";
 
 const PORTRAIT = RESULTS_EXPORT_W <= 1080;
 const SIDE_PAD = 14;
+/** Same gold gradient as the group-draw posters ("GROUP B" title). */
+const GOLD_GRADIENT = "linear-gradient(180deg, #FFE08A 0%, #F5B82E 55%, #D98A0B 100%)";
+const GOLD_TEXT: CSSProperties = {
+  color: GOLD,
+  backgroundImage: GOLD_GRADIENT,
+  WebkitBackgroundClip: "text",
+  backgroundClip: "text",
+  WebkitTextFillColor: "transparent",
+};
+
 const DEFAULT_HEADING = "Եզրափակիչ փուլ";
 
 function placeTone(rank: number): { background: string; rank: string } {
-  if (rank === 1) return { background: "rgba(230, 193, 90, 0.12)", rank: "#E6C15A" };
+  if (rank === 1) return { background: "rgba(245, 184, 46, 0.16)", rank: "#FFC94A" };
   if (rank === 2) return { background: "rgba(214, 220, 230, 0.09)", rank: "#E4E7EE" };
   if (rank === 3) return { background: "rgba(184, 122, 66, 0.12)", rank: "#E0A36A" };
   return { background: "transparent", rank: GOLD };
@@ -56,11 +66,13 @@ function BroadcastBackground() {
         aria-hidden
         style={{
           position: "absolute",
-          inset: 0,
-          width: "100%",
-          height: "100%",
+          // Oversize slightly so the blur doesn't show soft edges.
+          inset: -8,
+          width: "calc(100% + 16px)",
+          height: "calc(100% + 16px)",
           objectFit: "cover",
           objectPosition: "center 30%",
+          filter: "blur(2px)",
         }}
       />
       <div
@@ -68,7 +80,7 @@ function BroadcastBackground() {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(5, 8, 16, 0.52)",
+          background: "radial-gradient(ellipse at 50% 45%, rgba(24, 12, 4, 0.08) 0%, rgba(24, 12, 4, 0.42) 100%)",
         }}
       />
     </>
@@ -100,7 +112,7 @@ function StandingsTable({ rows }: { rows: TeamStanding[] }) {
 
   const headTh: CSSProperties = {
     fontFamily: FONT_DISPLAY,
-    color: `rgba(255, 248, 230, 0.92)`,
+    color: `rgba(255, 255, 255, 0.92)`,
     background: "transparent",
     whiteSpace: "nowrap",
     lineHeight: 1,
@@ -148,6 +160,7 @@ function StandingsTable({ rows }: { rows: TeamStanding[] }) {
                 ...numberFontBase,
                 fontSize: rankFontPx,
                 color: rankNumberColor(place, played),
+                ...(played && (place === 1 || place > 3) ? GOLD_TEXT : {}),
                 display: "inline-flex",
                 alignItems: "center",
                 justifyContent: "center",
@@ -233,7 +246,7 @@ function StandingsTable({ rows }: { rows: TeamStanding[] }) {
             color: played ? GOLD : GOLD_DIM,
           }}
         >
-          {r.totalPoints}
+          <span style={played ? GOLD_TEXT : undefined}>{r.totalPoints}</span>
         </td>
       </tr>,
     );
@@ -269,7 +282,8 @@ function StandingsTable({ rows }: { rows: TeamStanding[] }) {
                   fontSize: isTotal ? headFontPx : headFontPx,
                   padding: `${headPy}px ${isTeam ? 8 : isTotal ? totalPadX : statPadX}px`,
                   borderBottom: `1px solid ${ROW_LINE}`,
-                  color: isTotal ? GOLD : "rgba(246, 243, 234, 0.72)",
+                  color: isTotal ? GOLD : "rgba(255, 255, 255, 0.75)",
+                  ...(isTotal ? GOLD_TEXT : {}),
                   letterSpacing: headTh.letterSpacing,
                 }}
               >
@@ -329,7 +343,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: "0.06em",
-                color: GOLD,
+                ...GOLD_TEXT,
               }}
             >
               {standingsSubtitle}
@@ -341,7 +355,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 fontSize: PORTRAIT ? 32 : 36,
                 fontWeight: 700,
                 lineHeight: 1.05,
-                color: NAME_COLOR,
+                ...GOLD_TEXT,
               }}
             >
               {heading}
@@ -355,8 +369,10 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
                 color: GOLD,
               }}
             >
-              ԽԱՂ {matchCurrent}/{matchTotal}
-              <span style={{ color: "rgba(246, 243, 234, 0.8)", fontWeight: 600 }}>
+              <span style={GOLD_TEXT}>
+                ԽԱՂ {matchCurrent}/{matchTotal}
+              </span>
+              <span style={{ color: "rgba(255, 255, 255, 0.85)", fontWeight: 600 }}>
                 {"  ·  "}
                 {tournamentName || "Մրցաշար"}
               </span>
@@ -368,7 +384,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               style={{
                 overflow: "hidden",
                 borderRadius: 8,
-                border: "1px solid rgba(255, 255, 255, 0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.14)",
                 backgroundColor: TABLE_BG,
                 padding: "4px 6px 6px",
               }}
@@ -399,7 +415,7 @@ export const FinalStageGraphic = forwardRef<HTMLDivElement, FinalStageGraphicPro
               fontFamily: FONT_DISPLAY,
               fontSize: 12,
               fontWeight: 600,
-              color: "rgba(246, 243, 234, 0.55)",
+              color: "rgba(255, 255, 255, 0.6)",
             }}
           >
             {heading} • Ընդհանուր աղյուսակ
