@@ -15,6 +15,8 @@ export function GraphicTeamRow({
   nameColor = GOLD,
   nameFontWeight = 600,
   shrinkWrap = false,
+  nameFontFamily = "'Rajdhani', 'Noto Sans Armenian', system-ui, sans-serif",
+  logoRadius = 8,
 }: {
   team: Team;
   logoPx?: number;
@@ -27,6 +29,8 @@ export function GraphicTeamRow({
   nameFontWeight?: number;
   /** Shrink row to logo+name width (for centered MVP-style layouts). */
   shrinkWrap?: boolean;
+  nameFontFamily?: string;
+  logoRadius?: number;
 }) {
   const initial = team.name.trim().slice(0, 1).toUpperCase() || "?";
 
@@ -34,7 +38,7 @@ export function GraphicTeamRow({
     flexShrink: 0,
     width: logoPx,
     height: logoPx,
-    borderRadius: 8,
+    borderRadius: logoRadius,
     border: "1px solid rgba(255, 255, 255, 0.12)",
     overflow: "hidden",
     backgroundColor: "#121a28",
@@ -49,7 +53,7 @@ export function GraphicTeamRow({
     overflow: "hidden",
     textOverflow: "ellipsis",
     whiteSpace: "nowrap",
-    fontFamily: "'Rajdhani', 'Noto Sans Armenian', system-ui, sans-serif",
+    fontFamily: nameFontFamily,
     fontSize: nameFontSize,
     fontWeight: nameFontWeight,
     color: nameColor,

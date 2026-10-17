@@ -1,8 +1,24 @@
 import { toBlob } from "html-to-image";
 import { GRAPHIC_BG } from "./graphicTheme";
 
-/** 6× keeps text and logos sharp when the board is posted or viewed large. */
+/** 6× keeps text and logos sharp when the board is posted or viewed large (capped per browser limits below). */
 const EXPORT_PIXEL_RATIO = 6;
+/**
+ * Max canvas area most browsers accept (Safari/iOS caps around 16.7M px).
+ * Exports above this are scaled down just enough to stay renderable.
+ */
+const MAX_CANVAS_PIXELS = 16_000_000;
+
+/** Highest pixel ratio ≤ `requested` that keeps the canvas within browser limits. */
+export function safeExportPixelRatio(
+  width: number,
+  height: number,
+  requested: number = EXPORT_PIXEL_RATIO,
+): number {
+  const area = Math.max(1, width * height);
+  const maxRatio = Math.sqrt(MAX_CANVAS_PIXELS / area);
+  return Math.max(1, Math.min(requested, Math.floor(maxRatio * 100) / 100));
+}
 
 export async function waitForGraphicImages(root: HTMLElement): Promise<void> {
   const imgs = [...root.querySelectorAll("img")];
@@ -141,7 +157,7 @@ export async function captureElementToPngBlob(
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
   const blob = await toBlob(el, {
-    pixelRatio,
+    pixelRatio: safeExportPixelRatio(width, height, pixelRatio),
     backgroundColor,
     width,
     height,
