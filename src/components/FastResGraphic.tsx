@@ -20,13 +20,13 @@ const STAT_COLOR = "rgba(214, 236, 255, 0.72)";
 const CYAN = "#22D3EE";
 const CYAN_DIM = "rgba(34, 211, 238, 0.45)";
 const PAGE_BG = "#04101c";
-const TABLE_BG = "rgba(4, 14, 32, 0.62)";
+const TABLE_BG = "rgba(4, 14, 32, 0.48)";
 const ROW_LINE = "rgba(160, 220, 255, 0.12)";
 
 function placeTone(rank: number): { background: string; rank: string } {
-  if (rank === 1) return { background: "rgba(34, 211, 238, 0.2)", rank: "#67E8F9" };
-  if (rank === 2) return { background: "rgba(56, 140, 220, 0.18)", rank: "#7DD3FC" };
-  if (rank === 3) return { background: "rgba(30, 78, 160, 0.28)", rank: "#93C5FD" };
+  if (rank === 1) return { background: "rgba(34, 211, 238, 0.12)", rank: "#67E8F9" };
+  if (rank === 2) return { background: "rgba(56, 140, 220, 0.1)", rank: "#7DD3FC" };
+  if (rank === 3) return { background: "rgba(30, 78, 160, 0.16)", rank: "#93C5FD" };
   return { background: "transparent", rank: CYAN };
 }
 
@@ -220,7 +220,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
           position: "absolute",
           inset: 0,
           background:
-            "linear-gradient(180deg, rgba(2, 10, 24, 0.78) 0%, rgba(3, 12, 28, 0.72) 40%, rgba(2, 8, 20, 0.8) 100%)",
+            "linear-gradient(180deg, rgba(2, 10, 24, 0.64) 0%, rgba(3, 12, 28, 0.56) 40%, rgba(2, 8, 20, 0.66) 100%)",
         }}
       />
 
@@ -235,7 +235,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             justifyContent: "space-between",
             gap: 16,
             paddingBottom: 10,
-            borderBottom: "1px solid rgba(34, 211, 238, 0.35)",
+            borderBottom: "1px solid rgba(34, 211, 238, 0.22)",
           }}
         >
           <div style={{ minWidth: 0 }}>
@@ -302,7 +302,7 @@ export const FastResGraphic = forwardRef<HTMLDivElement, FastResGraphicProps>(fu
             style={{
               overflow: "hidden",
               borderRadius: 8,
-              border: "1px solid rgba(34, 211, 238, 0.22)",
+              border: "1px solid rgba(34, 211, 238, 0.14)",
               backgroundColor: TABLE_BG,
               padding: "4px 6px 6px",
             }}

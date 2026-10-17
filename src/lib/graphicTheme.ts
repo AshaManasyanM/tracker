@@ -1,5 +1,5 @@
-/** Standings and MVP PNG width. Narrower than 1080 so rows stay compact. */
-export const RESULTS_EXPORT_W = 820;
+/** Standings and MVP PNG width. Kept narrow so the board reads as one compact image. */
+export const RESULTS_EXPORT_W = 680;
 export const RESULTS_EXPORT_MAX_H = 1350;
 /** Final stage standings (tall header + 16+ rows) needs a higher cap. */
 export const FINAL_STAGE_EXPORT_MAX_H = 2400;
