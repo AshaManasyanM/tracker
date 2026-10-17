@@ -155,7 +155,7 @@ export function MvpGraphicsModal({
           measureGraphicExportHeight(el, MVP_EXPORT_MAX_H),
         );
         const blob = await captureVisibleGraphic(el, MVP_EXPORT_W, exportH);
-        downloadPngBlob(blob, `${base}_mvp_${gender}_${stamp}.png`);
+        downloadPngBlob(blob, `${base}_mvp_${gender}_${stamp}.jpg`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
       } finally {

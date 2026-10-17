@@ -170,7 +170,7 @@ export function FinalResultsModal({
         const stageSlug = slugifyFilename(view.fileTag);
         const suffix = variant === "final" ? "photo" : "fast_res";
         const parts = [base, stageSlug, suffix, stamp].filter(Boolean);
-        downloadPngBlob(blob, `${parts.join("_")}.png`);
+        downloadPngBlob(blob, `${parts.join("_")}.jpg`);
       } catch (e) {
         alert(e instanceof Error ? e.message : "Download failed. Try again in a moment.");
       } finally {

@@ -1,4 +1,4 @@
-import { toBlob } from "html-to-image";
+import { toCanvas } from "html-to-image";
 import { GRAPHIC_BG } from "./graphicTheme";
 
 /** 6× keeps text and logos sharp when the board is posted or viewed large (capped per browser limits below). */
@@ -8,6 +8,8 @@ const EXPORT_PIXEL_RATIO = 6;
  * Exports above this are scaled down just enough to stay renderable.
  */
 const MAX_CANVAS_PIXELS = 16_000_000;
+/** JPEG quality for downloads (0.95 ≈ visually lossless, ~2 MB instead of ~18 MB PNG). */
+const EXPORT_JPEG_QUALITY = 0.95;
 
 /** Highest pixel ratio ≤ `requested` that keeps the canvas within browser limits. */
 export function safeExportPixelRatio(
@@ -156,7 +158,7 @@ export async function captureElementToPngBlob(
   await waitForGraphicImages(el);
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
 
-  const blob = await toBlob(el, {
+  const canvas = await toCanvas(el, {
     pixelRatio: safeExportPixelRatio(width, height, pixelRatio),
     backgroundColor,
     width,
@@ -168,6 +170,11 @@ export async function captureElementToPngBlob(
       overflow: "visible",
     },
   });
+
+  // High-quality JPEG: same resolution, ~1/9 the size of PNG for photo backgrounds.
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/jpeg", EXPORT_JPEG_QUALITY),
+  );
 
   if (!blob) {
     throw new Error("Could not create image.");
