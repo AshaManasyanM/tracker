@@ -16,6 +16,16 @@ import { newId } from "../lib/id";
 import { loadTournament, saveTournament } from "../lib/storage";
 import { describeSupabaseFetchError } from "../lib/supabaseErrors";
 import { saveTournamentRow, fetchTournamentById } from "../lib/tournamentDb";
+import { shrinkLogoDataUrl } from "../lib/processTeamLogo";
+
+async function shrinkTournamentLogos(t: Tournament): Promise<Tournament> {
+  const teams = await Promise.all(
+    t.teams.map(async (team) =>
+      team.logoDataUrl ? { ...team, logoDataUrl: await shrinkLogoDataUrl(team.logoDataUrl) } : team,
+    ),
+  );
+  return { ...t, teams };
+}
 import { buildMatchLabelFromMeta, compactMatchDaysByStage } from "../lib/matchDisplay";
 import { normalizeTournament } from "../lib/stages";
 import {
@@ -644,7 +654,10 @@ export function TournamentProvider({
     setRemoteLoadError(null);
     void (async () => {
       try {
-        const t = await fetchTournamentById(remoteTournamentId);
+        const loaded = await fetchTournamentById(remoteTournamentId);
+        if (cancelled) return;
+        // One-time cleanup: oversized logos make every autosave huge and time out.
+        const t = loaded ? await shrinkTournamentLogos(loaded) : null;
         if (cancelled) return;
         if (t) dispatch({ type: "hydrate", tournament: t });
         else setRemoteLoadError("This tournament could not be loaded or you do not have access.");

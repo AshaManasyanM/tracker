@@ -1,11 +1,16 @@
 const MAX_INPUT_BYTES = 8 * 1024 * 1024;
-/** Longest edge kept so a 6× PNG export still has a sharp logo. */
-const MAX_OUTPUT_SIDE = 512;
-/** Soft cap on serialized logo size (~520 KB base64). */
-const MAX_DATA_URL_CHARS = 700_000;
+/**
+ * Longest edge kept. Logos render at ~32 px on the boards, i.e. ~160 px in a 5× export,
+ * so 256 px stays sharp while keeping the tournament JSON small enough to save quickly.
+ */
+const MAX_OUTPUT_SIDE = 256;
+/** Soft cap on serialized logo size (~90 KB base64). */
+const MAX_DATA_URL_CHARS = 120_000;
+/** Logos at or under this size are left untouched when shrinking existing data. */
+const SHRINK_THRESHOLD_CHARS = 80_000;
 
 function drawLogo(
-  bitmap: ImageBitmap,
+  bitmap: CanvasImageSource & { width: number; height: number },
   maxSide: number,
 ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const scale = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height));
@@ -36,20 +41,62 @@ export async function processTeamLogoFile(file: File): Promise<string> {
   try {
     const { canvas } = drawLogo(bitmap, MAX_OUTPUT_SIDE);
 
-    let dataUrl = canvas.toDataURL("image/png");
-    if (dataUrl.length <= MAX_DATA_URL_CHARS) return dataUrl;
-
-    dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    const dataUrl = encodeCompact(canvas);
     if (dataUrl.length <= MAX_DATA_URL_CHARS) return dataUrl;
 
     const smaller = drawLogo(bitmap, Math.round(MAX_OUTPUT_SIDE * 0.7));
-    dataUrl = smaller.canvas.toDataURL("image/jpeg", 0.9);
-    if (dataUrl.length <= MAX_DATA_URL_CHARS) return dataUrl;
+    const small = encodeCompact(smaller.canvas);
+    if (small.length <= MAX_DATA_URL_CHARS) return small;
 
     throw new Error(
       "That image is still too large after compression. Try a smaller or simpler logo.",
     );
   } finally {
     bitmap.close();
+  }
+}
+
+/** PNG (keeps transparency) → WebP (keeps transparency, smaller) → JPEG fallback. */
+function encodeCompact(canvas: HTMLCanvasElement): string {
+  const png = canvas.toDataURL("image/png");
+  if (png.length <= SHRINK_THRESHOLD_CHARS) return png;
+  const webp = canvas.toDataURL("image/webp", 0.92);
+  if (webp.startsWith("data:image/webp") && webp.length < png.length) {
+    if (webp.length <= SHRINK_THRESHOLD_CHARS) return webp;
+  }
+  const jpeg = canvas.toDataURL("image/jpeg", 0.9);
+  const best = [png, webp.startsWith("data:image/webp") ? webp : png, jpeg].reduce((a, b) =>
+    b.length < a.length ? b : a,
+  );
+  return best;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error("logo decode failed"));
+    img.src = src;
+  });
+}
+
+/**
+ * Shrinks an existing oversized logo data URL to the current size limits.
+ * Returns the original string unchanged if it is already small or cannot be decoded.
+ */
+export async function shrinkLogoDataUrl(dataUrl: string): Promise<string> {
+  if (!dataUrl.startsWith("data:image/") || dataUrl.length <= SHRINK_THRESHOLD_CHARS) {
+    return dataUrl;
+  }
+  try {
+    const img = await loadImage(dataUrl);
+    const { canvas } = drawLogo(
+      Object.assign(img, { width: img.naturalWidth, height: img.naturalHeight }),
+      MAX_OUTPUT_SIDE,
+    );
+    const out = encodeCompact(canvas);
+    return out.length < dataUrl.length ? out : dataUrl;
+  } catch {
+    return dataUrl;
   }
 }
