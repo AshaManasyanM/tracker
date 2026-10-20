@@ -27,7 +27,7 @@ const tabs: { id: Tab; label: string; shortLabel: string; hint: string }[] = [
     id: "groups",
     label: "Groups",
     shortLabel: "Groups",
-    hint: "Name groups, assign squads, and send qualifiers to the finals",
+    hint: "Name groups, assign squads, and send qualifiers to the semifinals",
   },
   {
     id: "matches",

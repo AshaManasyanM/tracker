@@ -1,5 +1,5 @@
 import { useTournament } from "../state/TournamentContext";
-import { finalsStage, groupStages, stageSlice } from "../lib/stages";
+import { finalsStage, groupStages, lastChanceStage, semifinalStages, stageSlice } from "../lib/stages";
 
 export function StageSwitcher() {
   const { tournament, dispatch } = useTournament();
@@ -7,6 +7,8 @@ export function StageSwitcher() {
   if (!slice.enabled) return null;
 
   const groups = groupStages(tournament);
+  const semis = semifinalStages(tournament);
+  const lastChance = lastChanceStage(tournament);
   const finals = finalsStage(tournament);
   const looseMatches = tournament.matches.filter((m) => !m.stageId).length;
 
@@ -36,6 +38,40 @@ export function StageSwitcher() {
               </button>
             );
           })}
+          {semis.map((stage) => {
+            const selected = slice.active?.id === stage.id;
+            return (
+              <button
+                key={stage.id}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => dispatch({ type: "setActiveStage", stageId: stage.id })}
+                className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium ${
+                  selected
+                    ? "border-sky-400/50 bg-sky-950/70 text-sky-100"
+                    : "border-line text-slate-300 hover:border-sky-400/40"
+                }`}
+              >
+                {stage.name}
+                <span className="ml-1.5 text-xs text-slate-500">{stage.teamIds.length}</span>
+              </button>
+            );
+          })}
+          {lastChance && (
+            <button
+              type="button"
+              aria-pressed={slice.active?.id === lastChance.id}
+              onClick={() => dispatch({ type: "setActiveStage", stageId: lastChance.id })}
+              className={`shrink-0 rounded-lg border px-3 py-1.5 text-sm font-medium ${
+                slice.active?.id === lastChance.id
+                  ? "border-orange-400/50 bg-orange-950/60 text-orange-100"
+                  : "border-line text-slate-300 hover:border-orange-400/40"
+              }`}
+            >
+              {lastChance.name}
+              <span className="ml-1.5 text-xs text-slate-500">{lastChance.teamIds.length}</span>
+            </button>
+          )}
           {finals && (
             <button
               type="button"

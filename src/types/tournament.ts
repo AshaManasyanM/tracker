@@ -49,9 +49,9 @@ export type Match = {
   results: Record<string, MatchTeamResult>;
 };
 
-export type StageKind = "group" | "final";
+export type StageKind = "group" | "semifinal" | "final" | "lastchance";
 
-/** A named group, or the finals. Team ids point at `Tournament.teams`. */
+/** A group, semifinal group, last chance, or the finals. Team ids point at `Tournament.teams`. */
 export type TournamentStage = {
   id: string;
   name: string;
@@ -67,7 +67,7 @@ export type Tournament = {
   teams: Team[];
   /** All rounds; each `results[teamId]` holds placement, kills, and optional `playerKills` per roster member */
   matches: Match[];
-  /** Named groups plus one finals stage. Absent = one field, current behavior. */
+  /** Groups, two semifinal groups, last chance, and finals. Absent = one field. */
   stages?: TournamentStage[];
   /** Stage shown in Live, Teams, and Matches. */
   activeStageId?: string | null;

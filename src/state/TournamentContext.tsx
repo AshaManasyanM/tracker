@@ -68,7 +68,10 @@ export type TournamentAction =
   | { type: "setActiveStage"; stageId: string }
   | { type: "assignTeamToGroup"; teamId: string; stageId: string | null }
   | { type: "qualifyTeams"; teamIds: string[] }
+  | { type: "moveTeamsToSemifinal"; teamIds: string[]; slot: 0 | 1 }
+  | { type: "splitSemifinalGroup"; stageId: string; finalistIds: string[] }
   | { type: "removeFinalist"; teamId: string }
+  | { type: "removeTeamFromStage"; stageId: string; teamId: string }
   | { type: "assignMatchesToStage"; stageId: string }
   | { type: "addMatch"; day?: number }
   | { type: "removeMatch"; matchId: string }
@@ -246,16 +249,18 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         teamIds: [],
       };
       const stages = [...(state.stages ?? [])];
-      const finalsIndex = stages.findIndex((s) => s.kind === "final");
-      if (finalsIndex === -1) {
-        stages.push(group, {
+      const insertAt = stages.findIndex(
+        (s) => s.kind === "semifinal" || s.kind === "lastchance" || s.kind === "final",
+      );
+      if (insertAt === -1) stages.push(group);
+      else stages.splice(insertAt, 0, group);
+      if (!stages.some((s) => s.kind === "final")) {
+        stages.push({
           id: newId("stage"),
           name: "Finals",
           kind: "final",
           teamIds: [],
         });
-      } else {
-        stages.splice(finalsIndex, 0, group);
       }
       return touch({
         ...state,
@@ -276,12 +281,17 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       let matches = state.matches.filter((m) => m.stageId !== stage.id);
       const groupsLeft = stages.filter((s) => s.kind === "group");
       const finals = stages.find((s) => s.kind === "final");
+      const later = stages.filter((s) => s.kind !== "group");
       if (groupsLeft.length === 0) {
-        const finalsMatches = finals ? matches.filter((m) => m.stageId === finals.id) : [];
-        const finalsScored = finalsMatches.some((m) =>
-          Object.values(m.results).some((r) => r?.placement != null),
-        );
-        if ((finals?.teamIds.length ?? 0) === 0 && !finalsScored) {
+        const laterBusy = later.some((s) => {
+          if (s.teamIds.length > 0) return true;
+          return matches.some(
+            (m) =>
+              m.stageId === s.id &&
+              Object.values(m.results).some((r) => r?.placement != null),
+          );
+        });
+        if (!laterBusy) {
           matches = matches.map((m) => ({ ...m, stageId: undefined }));
           if (matches.length === 0) matches = [appendMatch(state.teams, [])];
           matches = compactMatchDaysByStage(matches);
@@ -344,9 +354,101 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       const stages = state.stages?.map((s) => (s.id === finals.id ? { ...s, teamIds } : s));
       return touch({ ...state, stages });
     }
+    case "moveTeamsToSemifinal": {
+      if (!state.stages) return state;
+      const known = new Set(state.teams.map((t) => t.id));
+      const incoming = action.teamIds.filter((id) => known.has(id));
+      if (incoming.length === 0 || (action.slot !== 0 && action.slot !== 1)) return state;
+      let stages = [...state.stages];
+      const names = ["Semifinal A", "Semifinal B"];
+      const semiIds: string[] = [];
+      for (let slot = 0; slot < 2; slot += 1) {
+        let stage = stages.filter((s) => s.kind === "semifinal")[slot];
+        if (!stage) {
+          stage = {
+            id: newId("stage"),
+            name: names[slot]!,
+            kind: "semifinal",
+            teamIds: [],
+          };
+          const at = stages.findIndex((s) => s.kind === "lastchance" || s.kind === "final");
+          if (at === -1) stages.push(stage);
+          else stages.splice(at, 0, stage);
+        }
+        semiIds.push(stage.id);
+      }
+      const targetId = semiIds[action.slot];
+      stages = stages.map((s) => {
+        if (s.kind !== "semifinal") return s;
+        const teamIds = s.teamIds.filter((id) => !incoming.includes(id));
+        if (s.id === targetId) {
+          for (const id of incoming) {
+            if (!teamIds.includes(id)) teamIds.push(id);
+          }
+        }
+        return { ...s, teamIds };
+      });
+      return touch({ ...state, stages });
+    }
+    case "splitSemifinalGroup": {
+      if (!state.stages) return state;
+      const semi = state.stages.find((s) => s.id === action.stageId && s.kind === "semifinal");
+      if (!semi) return state;
+      const chosen = new Set(action.finalistIds.filter((id) => semi.teamIds.includes(id)));
+      if (chosen.size === 0) return state;
+      const toFinal = semi.teamIds.filter((id) => chosen.has(id));
+      const toLast = semi.teamIds.filter((id) => !chosen.has(id));
+      const moving = new Set([...toFinal, ...toLast]);
+      let stages = [...state.stages];
+      let last = stages.find((s) => s.kind === "lastchance");
+      if (!last) {
+        last = {
+          id: newId("stage"),
+          name: "Last chance",
+          kind: "lastchance",
+          teamIds: [],
+        };
+        const at = stages.findIndex((s) => s.kind === "final");
+        if (at === -1) stages.push(last);
+        else stages.splice(at, 0, last);
+      }
+      let finals = stages.find((s) => s.kind === "final");
+      if (!finals) {
+        finals = { id: newId("stage"), name: "Finals", kind: "final", teamIds: [] };
+        stages.push(finals);
+      }
+      const lastId = last.id;
+      const finalsId = finals.id;
+      stages = stages.map((s) => {
+        if (s.id === finalsId) {
+          const teamIds = s.teamIds.filter((id) => !moving.has(id));
+          for (const id of toFinal) {
+            if (!teamIds.includes(id)) teamIds.push(id);
+          }
+          return { ...s, teamIds };
+        }
+        if (s.id === lastId) {
+          const teamIds = s.teamIds.filter((id) => !moving.has(id));
+          for (const id of toLast) {
+            if (!teamIds.includes(id)) teamIds.push(id);
+          }
+          return { ...s, teamIds };
+        }
+        return s;
+      });
+      return touch({ ...state, stages });
+    }
     case "removeFinalist": {
       const stages = state.stages?.map((s) =>
         s.kind === "final" ? { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) } : s,
+      );
+      return touch({ ...state, stages });
+    }
+    case "removeTeamFromStage": {
+      const stages = state.stages?.map((s) =>
+        s.id === action.stageId
+          ? { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) }
+          : s,
       );
       return touch({ ...state, stages });
     }

@@ -106,7 +106,7 @@ export function FinalResultsModal({
       teams: teamsInStage(tournament, stage),
       matches: matchesInStage(tournament, stage),
       title: tournament.name,
-      heading: stage.kind === "group" ? stage.name : "Եզրափակիչ փուլ",
+      heading: stage.kind === "final" ? "Եզրափակիչ փուլ" : stage.name,
       fileTag: stage.name,
     };
   }, [tournament, stageId]);
