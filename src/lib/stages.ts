@@ -14,6 +14,11 @@ export function groupStages(t: Tournament): TournamentStage[] {
   return tournamentStages(t).filter((s) => s.kind === "group");
 }
 
+/** Every squad sent up from the groups, before they are split into Semifinal A and B. */
+export function semifieldStage(t: Tournament): TournamentStage | null {
+  return tournamentStages(t).find((s) => s.kind === "semifield") ?? null;
+}
+
 export function semifinalStages(t: Tournament): TournamentStage[] {
   return tournamentStages(t).filter((s) => s.kind === "semifinal");
 }
@@ -131,13 +136,13 @@ export function stageSlice(t: Tournament): StageSlice {
 }
 
 function normalizeStageKind(kind: string): StageKind {
-  if (kind === "semifinal" || kind === "final" || kind === "lastchance") return kind;
+  if (kind === "semifield" || kind === "semifinal" || kind === "final" || kind === "lastchance") return kind;
   return "group";
 }
 
 function defaultStageName(kind: StageKind): string {
   if (kind === "final") return "Finals";
-  if (kind === "semifinal") return "Semifinal";
+  if (kind === "semifield" || kind === "semifinal") return "Semifinal";
   if (kind === "lastchance") return "Last chance";
   return "Group";
 }
@@ -152,6 +157,7 @@ export function normalizeTournament(t: Tournament): Tournament {
 
   let finalsKept = false;
   let lastChanceKept = false;
+  let semifieldKept = false;
   const stages: TournamentStage[] = [];
   const seenInGroups = new Set<string>();
   const seenInSemis = new Set<string>();
@@ -164,6 +170,10 @@ export function normalizeTournament(t: Tournament): Tournament {
     if (kind === "lastchance") {
       if (lastChanceKept) continue;
       lastChanceKept = true;
+    }
+    if (kind === "semifield") {
+      if (semifieldKept) continue;
+      semifieldKept = true;
     }
     const ids: string[] = [];
     for (const id of stage.teamIds) {

@@ -1,5 +1,7 @@
 /** Standings and MVP PNG width. Kept narrow so the board reads as one compact image. */
 export const RESULTS_EXPORT_W = 680;
+/** Semifinal roster is a wide logo grid, separate from the narrow standings boards. */
+export const SEMIFINAL_FIELD_EXPORT_W = 1360;
 export const RESULTS_EXPORT_MAX_H = 1350;
 /** Final stage standings (tall header + 16+ rows) needs a higher cap. */
 export const FINAL_STAGE_EXPORT_MAX_H = 2400;

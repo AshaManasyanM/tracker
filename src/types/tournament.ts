@@ -49,9 +49,9 @@ export type Match = {
   results: Record<string, MatchTeamResult>;
 };
 
-export type StageKind = "group" | "semifinal" | "final" | "lastchance";
+export type StageKind = "group" | "semifield" | "semifinal" | "final" | "lastchance";
 
-/** A group, semifinal group, last chance, or the finals. Team ids point at `Tournament.teams`. */
+/** A group, the full semifinal field, a semifinal group, last chance, or the finals. Team ids point at `Tournament.teams`. */
 export type TournamentStage = {
   id: string;
   name: string;

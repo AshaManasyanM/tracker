@@ -27,7 +27,7 @@ async function shrinkTournamentLogos(t: Tournament): Promise<Tournament> {
   return { ...t, teams };
 }
 import { buildMatchLabelFromMeta, compactMatchDaysByStage } from "../lib/matchDisplay";
-import { normalizeTournament } from "../lib/stages";
+import { GROUP_ADVANCE_COUNT, normalizeTournament } from "../lib/stages";
 import {
   appendMatch,
   createEmptyTournament,
@@ -68,7 +68,8 @@ export type TournamentAction =
   | { type: "setActiveStage"; stageId: string }
   | { type: "assignTeamToGroup"; teamId: string; stageId: string | null }
   | { type: "qualifyTeams"; teamIds: string[] }
-  | { type: "moveTeamsToSemifinal"; teamIds: string[]; slot: 0 | 1 }
+  | { type: "moveTeamsToSemifinal"; teamIds: string[] }
+  | { type: "assignSemifinalSide"; teamIds: string[]; slot: 0 | 1 }
   | { type: "splitSemifinalGroup"; stageId: string; finalistIds: string[] }
   | { type: "removeFinalist"; teamId: string }
   | { type: "removeTeamFromStage"; stageId: string; teamId: string }
@@ -250,7 +251,11 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       };
       const stages = [...(state.stages ?? [])];
       const insertAt = stages.findIndex(
-        (s) => s.kind === "semifinal" || s.kind === "lastchance" || s.kind === "final",
+        (s) =>
+          s.kind === "semifield" ||
+          s.kind === "semifinal" ||
+          s.kind === "lastchance" ||
+          s.kind === "final",
       );
       if (insertAt === -1) stages.push(group);
       else stages.splice(insertAt, 0, group);
@@ -358,7 +363,39 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       if (!state.stages) return state;
       const known = new Set(state.teams.map((t) => t.id));
       const incoming = action.teamIds.filter((id) => known.has(id));
-      if (incoming.length === 0 || (action.slot !== 0 && action.slot !== 1)) return state;
+      if (incoming.length !== GROUP_ADVANCE_COUNT) return state;
+      let stages = [...state.stages];
+      let field = stages.find((s) => s.kind === "semifield");
+      if (!field) {
+        field = {
+          id: newId("stage"),
+          name: "Semifinal",
+          kind: "semifield",
+          teamIds: [],
+        };
+        const at = stages.findIndex(
+          (s) => s.kind === "semifinal" || s.kind === "lastchance" || s.kind === "final",
+        );
+        if (at === -1) stages.push(field);
+        else stages.splice(at, 0, field);
+      }
+      const fieldId = field.id;
+      stages = stages.map((s) => {
+        if (s.id !== fieldId) return s;
+        const teamIds = [...s.teamIds];
+        for (const id of incoming) {
+          if (!teamIds.includes(id)) teamIds.push(id);
+        }
+        return { ...s, teamIds };
+      });
+      return touch({ ...state, stages });
+    }
+    case "assignSemifinalSide": {
+      if (!state.stages || (action.slot !== 0 && action.slot !== 1)) return state;
+      const field = state.stages.find((s) => s.kind === "semifield");
+      if (!field) return state;
+      const incoming = action.teamIds.filter((id) => field.teamIds.includes(id));
+      if (incoming.length === 0) return state;
       let stages = [...state.stages];
       const names = ["Semifinal A", "Semifinal B"];
       const semiIds: string[] = [];
@@ -445,11 +482,16 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
       return touch({ ...state, stages });
     }
     case "removeTeamFromStage": {
-      const stages = state.stages?.map((s) =>
-        s.id === action.stageId
-          ? { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) }
-          : s,
-      );
+      const removed = state.stages?.find((s) => s.id === action.stageId);
+      const stages = state.stages?.map((s) => {
+        if (s.id === action.stageId) {
+          return { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) };
+        }
+        if (removed?.kind === "semifield" && s.kind === "semifinal") {
+          return { ...s, teamIds: s.teamIds.filter((id) => id !== action.teamId) };
+        }
+        return s;
+      });
       return touch({ ...state, stages });
     }
     case "assignMatchesToStage": {

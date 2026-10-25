@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useTournament } from "../state/TournamentContext";
 import {
   finalsStage,
@@ -7,18 +7,30 @@ import {
   lastChanceStage,
   matchesInStage,
   SEMIFINAL_ADVANCE_COUNT,
+  semifieldStage,
   semifinalStages,
   teamsInStage,
   unassignedTeams,
 } from "../lib/stages";
 import type { TournamentStage } from "../types/tournament";
+import {
+  captureElementToPngBlob,
+  captureVisibleGraphic,
+  downloadPngBlob,
+  measureGraphicExportHeight,
+  slugifyFilename,
+} from "../lib/graphicCapture";
+import { FINAL_STAGE_EXPORT_MAX_H, SEMIFINAL_FIELD_EXPORT_W } from "../lib/graphicTheme";
 import { Leaderboard } from "./Leaderboard";
 import { FinalResultsModal } from "./FinalResultsModal";
+import { SemifinalFieldGraphic } from "./SemifinalFieldGraphic";
+import { SemifinalGroupsGraphic } from "./SemifinalGroupsGraphic";
 
 export function GroupsPanel() {
   const { tournament, dispatch } = useTournament();
   const [groupName, setGroupName] = useState("");
   const [exportStageId, setExportStageId] = useState<string | null>(null);
+  const [exportSemifinalField, setExportSemifinalField] = useState(false);
   const groups = groupStages(tournament);
   const semis = semifinalStages(tournament);
   const lastChance = lastChanceStage(tournament);
@@ -31,10 +43,11 @@ export function GroupsPanel() {
       <section className="rounded-xl border border-line bg-canvas-overlay p-4 shadow-panel">
         <h2 className="text-base font-semibold text-slate-100">Groups</h2>
         <p className="mt-1 text-xs text-slate-500">
-          Each group has its own squads, matches, and standings. Select the top{" "}
-          {GROUP_ADVANCE_COUNT} in a group and send them to Semifinal A or Semifinal B. In each
-          semifinal group, select the top {SEMIFINAL_ADVANCE_COUNT}: they go to the final, and
-          everyone you leave unchecked plays last chance. Every new stage starts at zero.
+          Each group has its own squads, matches, and standings. Check {GROUP_ADVANCE_COUNT}{" "}
+          squads and send them to the semifinal image. Then choose which of those squads play
+          Semifinal A and which play Semifinal B. From each of those groups, check the{" "}
+          {SEMIFINAL_ADVANCE_COUNT} who go to the final. Everyone left unchecked plays last chance.
+          Every new stage starts at zero.
         </p>
         <form
           className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end"
@@ -103,6 +116,11 @@ export function GroupsPanel() {
         </section>
       )}
 
+      {groups.length > 0 && (
+        <SemifinalLiveImage onDownload={() => setExportSemifinalField(true)} />
+      )}
+      {groups.length > 0 && <SemifinalGroupsImages />}
+
       {groups.map((stage) => (
         <GroupCard
           key={stage.id}
@@ -140,12 +158,230 @@ export function GroupsPanel() {
       {finals && <FinalsCard stage={finals} onExport={() => setExportStageId(finals.id)} />}
 
       <FinalResultsModal
-        open={exportStageId != null}
-        onClose={() => setExportStageId(null)}
+        open={exportStageId != null || exportSemifinalField}
+        onClose={() => {
+          setExportStageId(null);
+          setExportSemifinalField(false);
+        }}
         tournament={tournament}
         stageId={exportStageId}
+        semifinalField={exportSemifinalField}
       />
     </div>
+  );
+}
+
+function SemifinalLiveImage({ onDownload }: { onDownload: () => void }) {
+  const { tournament, dispatch } = useTournament();
+  const graphicRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(420);
+  const [picked, setPicked] = useState<string[]>([]);
+  const field = semifieldStage(tournament);
+  const semis = semifinalStages(tournament);
+  const teams = field ? teamsInStage(tournament, field) : [];
+  const sideName = (teamId: string) => semis.find((stage) => stage.teamIds.includes(teamId))?.name;
+  const scale = 0.48;
+  const previewW = SEMIFINAL_FIELD_EXPORT_W * scale;
+
+  useLayoutEffect(() => {
+    const el = graphicRef.current;
+    if (!el) return;
+    const measure = () => setHeight(Math.ceil(el.offsetHeight));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [teams.length]);
+
+  const toggle = (teamId: string) => {
+    setPicked((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]));
+  };
+
+  const send = (slot: 0 | 1) => {
+    dispatch({ type: "assignSemifinalSide", teamIds: picked, slot });
+    setPicked([]);
+  };
+
+  return (
+    <section className="rounded-xl border border-sky-400/30 bg-canvas-overlay p-4 shadow-panel">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">Semifinal</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Every squad you send from a group appears here with its logo and name. Then choose
+            Semifinal A or Semifinal B.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-md border border-sky-400/40 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-100 hover:bg-sky-400/15"
+          onClick={onDownload}
+        >
+          Download image
+        </button>
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black">
+        <div className="mx-auto" style={{ width: previewW, height: height * scale }}>
+          <div
+            className="origin-top-left"
+            style={{ width: SEMIFINAL_FIELD_EXPORT_W, transform: `scale(${scale})` }}
+          >
+            <SemifinalFieldGraphic ref={graphicRef} tournamentName={tournament.name} teams={teams} />
+          </div>
+        </div>
+      </div>
+      {teams.length > 0 && (
+        <div className="mt-4">
+          <h3 className="text-sm font-semibold text-slate-100">Send to a semifinal group</h3>
+          <ul className="mt-2 divide-y divide-line rounded-lg border border-line">
+            {teams.map((team) => (
+              <li key={team.id} className="flex items-center gap-2 px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={picked.includes(team.id)}
+                  onChange={() => toggle(team.id)}
+                  aria-label={`Choose a semifinal group for ${team.name}`}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm text-slate-100">{team.name}</span>
+                {sideName(team.id) && (
+                  <span className="shrink-0 rounded-full border border-sky-400/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-sky-100">
+                    {sideName(team.id)}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={picked.length === 0}
+              className="rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => send(0)}
+            >
+              Send selected to {semis[0]?.name ?? "Semifinal A"}
+            </button>
+            <button
+              type="button"
+              disabled={picked.length === 0}
+              className="rounded-md border border-sky-400/40 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => send(1)}
+            >
+              Send selected to {semis[1]?.name ?? "Semifinal B"}
+            </button>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SemifinalGroupsImages() {
+  const { tournament } = useTournament();
+  const bothRef = useRef<HTMLDivElement>(null);
+  const leftRef = useRef<HTMLDivElement>(null);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(480);
+  const [busy, setBusy] = useState<string | null>(null);
+  const semis = semifinalStages(tournament);
+  const columns = semis.map((stage) => ({
+    id: stage.id,
+    name: stage.name,
+    teams: teamsInStage(tournament, stage),
+  }));
+  const named = [
+    columns[0] ?? { id: "semifinal-a", name: "Semifinal A", teams: [] },
+    columns[1] ?? { id: "semifinal-b", name: "Semifinal B", teams: [] },
+  ];
+  const hasTeams = named.some((column) => column.teams.length > 0);
+  const scale = 0.48;
+  const previewW = SEMIFINAL_FIELD_EXPORT_W * scale;
+
+  useLayoutEffect(() => {
+    const el = bothRef.current;
+    if (!el) return;
+    const measure = () => setHeight(Math.ceil(el.offsetHeight));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [named[0]?.teams.length, named[1]?.teams.length]);
+
+  if (!hasTeams) return null;
+
+  const save = async (el: HTMLElement | null, label: string, scaled: boolean) => {
+    if (!el || busy) return;
+    setBusy(label);
+    try {
+      const exportH = measureGraphicExportHeight(el, FINAL_STAGE_EXPORT_MAX_H);
+      const blob = scaled
+        ? await captureVisibleGraphic(el, SEMIFINAL_FIELD_EXPORT_W, exportH)
+        : await captureElementToPngBlob(el, SEMIFINAL_FIELD_EXPORT_W, exportH);
+      const stamp = new Date().toISOString().slice(0, 10);
+      const base = slugifyFilename(tournament.name) || "semifinal";
+      downloadPngBlob(blob, `${base}_${slugifyFilename(label) || "group"}_${stamp}.jpg`);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "Download failed. Try again in a moment.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  return (
+    <section className="rounded-xl border border-sky-400/30 bg-canvas-overlay p-4 shadow-panel">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">Semifinal groups</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Semifinal A on the left, Semifinal B on the right. Download them together or one at a time.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={busy != null}
+            className="rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/15 disabled:opacity-40"
+            onClick={() => void save(bothRef.current, "semifinals", true)}
+          >
+            {busy === "semifinals" ? "Rendering…" : "Download both"}
+          </button>
+          {named.map((column, index) => (
+            <button
+              key={column.id}
+              type="button"
+              disabled={busy != null || column.teams.length === 0}
+              className="rounded-md border border-sky-400/40 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/10 disabled:opacity-40"
+              onClick={() => void save(index === 0 ? leftRef.current : rightRef.current, column.name, false)}
+            >
+              {busy === column.name ? "Rendering…" : `Download ${column.name}`}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black">
+        <div className="mx-auto" style={{ width: previewW, height: height * scale }}>
+          <div
+            className="origin-top-left"
+            style={{ width: SEMIFINAL_FIELD_EXPORT_W, transform: `scale(${scale})` }}
+          >
+            <SemifinalGroupsGraphic ref={bothRef} tournamentName={tournament.name} columns={named} />
+          </div>
+        </div>
+      </div>
+      <div aria-hidden className="pointer-events-none absolute left-[-10000px] top-0">
+        <SemifinalGroupsGraphic
+          ref={leftRef}
+          tournamentName={tournament.name}
+          columns={[named[0]!]}
+          columnsPerGroup={4}
+        />
+        <SemifinalGroupsGraphic
+          ref={rightRef}
+          tournamentName={tournament.name}
+          columns={[named[1]!]}
+          columnsPerGroup={4}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -191,13 +427,21 @@ function GroupCard({ stage, onExport }: { stage: TournamentStage; onExport: () =
   const [picked, setPicked] = useState<string[]>([]);
   const teams = teamsInStage(tournament, stage);
   const matches = matchesInStage(tournament, stage);
+  const field = semifieldStage(tournament);
   const semis = semifinalStages(tournament);
   const available = unassignedTeams(tournament);
-  const semiName = (teamId: string) => semis.find((semi) => semi.teamIds.includes(teamId))?.name;
+  const semiName = (teamId: string) =>
+    semis.find((semi) => semi.teamIds.includes(teamId))?.name ??
+    (field?.teamIds.includes(teamId) ? "Semifinal" : undefined);
 
   const toggle = (teamId: string) => {
-    setPicked((prev) => (prev.includes(teamId) ? prev.filter((id) => id !== teamId) : [...prev, teamId]));
+    setPicked((prev) => {
+      if (prev.includes(teamId)) return prev.filter((id) => id !== teamId);
+      if (prev.length >= GROUP_ADVANCE_COUNT) return prev;
+      return [...prev, teamId];
+    });
   };
+  const readyToSend = picked.length === GROUP_ADVANCE_COUNT;
 
   return (
     <section className="rounded-xl border border-line bg-canvas-overlay p-4 shadow-panel">
@@ -276,8 +520,9 @@ function GroupCard({ stage, onExport }: { stage: TournamentStage; onExport: () =
                 <input
                   type="checkbox"
                   checked={picked.includes(team.id)}
+                  disabled={!picked.includes(team.id) && picked.length >= GROUP_ADVANCE_COUNT}
                   onChange={() => toggle(team.id)}
-                  aria-label={`Qualify ${team.name}`}
+                  aria-label={`Send ${team.name} to the semifinal`}
                 />
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-100">{team.name}</span>
                 {semiName(team.id) && (
@@ -297,32 +542,19 @@ function GroupCard({ stage, onExport }: { stage: TournamentStage; onExport: () =
               </li>
             ))}
           </ul>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              disabled={picked.length === 0}
-              className="rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-40"
-              onClick={() => {
-                dispatch({ type: "moveTeamsToSemifinal", teamIds: picked, slot: 0 });
-                setPicked([]);
-              }}
-            >
-              Move selected to {semis[0]?.name ?? "Semifinal A"}
-            </button>
-            <button
-              type="button"
-              disabled={picked.length === 0}
-              className="rounded-md border border-sky-400/40 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/10 disabled:cursor-not-allowed disabled:opacity-40"
-              onClick={() => {
-                dispatch({ type: "moveTeamsToSemifinal", teamIds: picked, slot: 1 });
-                setPicked([]);
-              }}
-            >
-              Move selected to {semis[1]?.name ?? "Semifinal B"}
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={!readyToSend}
+            className="mt-2 rounded-md border border-sky-400/40 bg-sky-400/10 px-3 py-1.5 text-sm font-medium text-sky-100 hover:bg-sky-400/15 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              dispatch({ type: "moveTeamsToSemifinal", teamIds: picked });
+              setPicked([]);
+            }}
+          >
+            Move 4 to semifinal
+          </button>
           <p className="mt-2 text-xs text-slate-500">
-            Select the top {GROUP_ADVANCE_COUNT} in this group. Their group points stay here.
+            {picked.length} of {GROUP_ADVANCE_COUNT} selected. They appear on the semifinal image. Group points stay here.
           </p>
         </div>
         <Leaderboard teams={teams} matches={matches} title={`${stage.name} results`} />

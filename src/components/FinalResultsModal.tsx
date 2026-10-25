@@ -19,11 +19,20 @@ import {
   FINAL_STAGE_EXPORT_MAX_H,
   RESULTS_EXPORT_MAX_H,
   RESULTS_EXPORT_W,
+  SEMIFINAL_FIELD_EXPORT_W,
 } from "../lib/graphicTheme";
 import { standingsGraphicMeta } from "../lib/standingsGraphicMeta";
-import { activeStage, matchesInStage, stageById, stagesEnabled, teamsInStage } from "../lib/stages";
+import {
+  activeStage,
+  matchesInStage,
+  semifieldStage,
+  stageById,
+  stagesEnabled,
+  teamsInStage,
+} from "../lib/stages";
 import { FastResGraphic } from "./FastResGraphic";
 import { FinalStageGraphic } from "./FinalStageGraphic";
+import { SemifinalFieldGraphic } from "./SemifinalFieldGraphic";
 
 const PREVIEW_SCALE = 0.42;
 const PREVIEW_GAP_PX = 40;
@@ -75,12 +84,15 @@ export function FinalResultsModal({
   onClose,
   tournament,
   stageId,
+  semifinalField = false,
 }: {
   open: boolean;
   onClose: () => void;
   tournament: Tournament;
   /** Group or finals to export. Omit to use the active stage, or the whole field when groups are off. */
   stageId?: string | null;
+  /** One image of every squad in the semifinal groups. */
+  semifinalField?: boolean;
 }) {
   const finalRef = useRef<HTMLDivElement>(null);
   const fastResRef = useRef<HTMLDivElement>(null);
@@ -126,6 +138,11 @@ export function FinalResultsModal({
     };
   }, [view.title, view.heading, view.matches, rows]);
 
+  const semifinalTeams = useMemo(() => {
+    const field = semifieldStage(tournament);
+    return field ? teamsInStage(tournament, field) : [];
+  }, [tournament]);
+
   useLayoutEffect(() => {
     if (!open) return;
     const measure = () => {
@@ -137,7 +154,7 @@ export function FinalResultsModal({
     const ro = new ResizeObserver(measure);
     for (const n of nodes) ro.observe(n);
     return () => ro.disconnect();
-  }, [open, tournament, stageId, finalStageProps]);
+  }, [open, tournament, stageId, semifinalField, finalStageProps, semifinalTeams]);
 
   useEffect(() => {
     if (!open) return;
@@ -164,11 +181,12 @@ export function FinalResultsModal({
       setDownloading(variant);
       try {
         const exportH = measureGraphicExportHeight(el, FINAL_STAGE_EXPORT_MAX_H);
-        const blob = await captureVisibleGraphic(el, RESULTS_EXPORT_W, exportH);
+        const exportW = semifinalField ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W;
+        const blob = await captureVisibleGraphic(el, exportW, exportH);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
-        const stageSlug = slugifyFilename(view.fileTag);
-        const suffix = variant === "final" ? "photo" : "fast_res";
+        const stageSlug = semifinalField ? "semifinal" : slugifyFilename(view.fileTag);
+        const suffix = semifinalField ? "teams" : variant === "final" ? "photo" : "fast_res";
         const parts = [base, stageSlug, suffix, stamp].filter(Boolean);
         downloadPngBlob(blob, `${parts.join("_")}.jpg`);
       } catch (e) {
@@ -177,7 +195,7 @@ export function FinalResultsModal({
         setDownloading(null);
       }
     },
-    [tournament.name, view.fileTag],
+    [semifinalField, tournament.name, view.fileTag],
   );
 
   if (!open) return null;
@@ -204,7 +222,9 @@ export function FinalResultsModal({
               Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              {view.title} · Photo poster · FAST RES
+              {semifinalField
+                ? `${tournament.name} · All semifinal teams`
+                : `${view.title} · Photo poster · FAST RES`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -214,16 +234,18 @@ export function FinalResultsModal({
               onClick={() => void downloadPng("final")}
               className="rounded-lg border border-[#c9a227]/50 bg-gradient-to-b from-[#3a3018] to-[#1a150a] px-4 py-2.5 text-sm font-semibold text-[#fff3cc] shadow-[0_0_24px_rgba(201,162,39,0.25)] hover:from-[#4a3f22] hover:to-[#221c0e] disabled:cursor-wait disabled:opacity-60"
             >
-              {downloading === "final" ? "Rendering…" : "Download photo"}
+              {downloading === "final" ? "Rendering…" : semifinalField ? "Download image" : "Download photo"}
             </button>
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void downloadPng("fastres")}
-              className="rounded-lg border border-cyan-400/40 bg-[#062033] px-4 py-2.5 text-sm font-semibold text-cyan-100 hover:border-cyan-300/60 disabled:cursor-wait disabled:opacity-60"
-            >
-              {downloading === "fastres" ? "Rendering…" : "Download FAST RES"}
-            </button>
+            {!semifinalField && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void downloadPng("fastres")}
+                className="rounded-lg border border-cyan-400/40 bg-[#062033] px-4 py-2.5 text-sm font-semibold text-cyan-100 hover:border-cyan-300/60 disabled:cursor-wait disabled:opacity-60"
+              >
+                {downloading === "fastres" ? "Rendering…" : "Download FAST RES"}
+              </button>
+            )}
             <button
               type="button"
               onClick={onClose}
@@ -236,20 +258,31 @@ export function FinalResultsModal({
 
         <div className="flex flex-col" style={{ gap: PREVIEW_GAP_PX }}>
           <GraphicPreview
-            label="Photo poster"
+            label={semifinalField ? "Semifinal" : "Photo poster"}
             contentHeight={finalHeight}
             previewInnerRef={finalPreviewInnerRef}
+            exportWidth={semifinalField ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W}
           >
-            <FinalStageGraphic ref={finalRef} {...finalStageProps} />
+            {semifinalField ? (
+              <SemifinalFieldGraphic
+                ref={finalRef}
+                tournamentName={tournament.name}
+                teams={semifinalTeams}
+              />
+            ) : (
+              <FinalStageGraphic ref={finalRef} {...finalStageProps} />
+            )}
           </GraphicPreview>
 
-          <GraphicPreview
-            label="FAST RES"
-            contentHeight={fastResHeight}
-            previewInnerRef={fastResPreviewInnerRef}
-          >
-            <FastResGraphic ref={fastResRef} {...finalStageProps} />
-          </GraphicPreview>
+          {!semifinalField && (
+            <GraphicPreview
+              label="FAST RES"
+              contentHeight={fastResHeight}
+              previewInnerRef={fastResPreviewInnerRef}
+            >
+              <FastResGraphic ref={fastResRef} {...finalStageProps} />
+            </GraphicPreview>
+          )}
         </div>
       </div>
     </div>,
