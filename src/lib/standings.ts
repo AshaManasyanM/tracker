@@ -10,26 +10,57 @@ export type TeamStanding = {
   totalKills: number;
   totalPlacementPoints: number;
   matchesPlayed: number;
-  /** Best finish in any single match (1 = best); Infinity if none */
+  /** Best finish in any single match (1 = best); 999 if none */
   bestPlacement: number;
-  /** Count of 1st place finishes */
+  /** Count of 1st place finishes (WWCD). */
   chickenDinners: number;
+  /** Kill points from the current scoring table. Equals `totalKills` while each elim is worth 1. */
+  totalKillPoints: number;
+  /** Placement in the latest scored match of this standings set. Lower is better; 999 if the team did not play it. */
+  lastMatchPlacement: number;
 };
 
-/** Teams that entered at least one placement rank above teams with no match data. */
-function compareStandings(a: TeamStanding, b: TeamStanding): number {
+const NO_PLACEMENT = 999;
+
+/**
+ * Leaderboard order. Each step applies only when every earlier value is equal.
+ * 1. Total points, highest first
+ * 2. WWCD (1st-place finishes), highest first
+ * 3. Kill points, highest first
+ * 4. Placement points, highest first
+ * 5. Last scored match placement, better (lower) finish first
+ * Teams with no scored match stay below teams that have one.
+ */
+export function compareStandings(a: TeamStanding, b: TeamStanding): number {
   const aPlayed = a.matchesPlayed > 0;
   const bPlayed = b.matchesPlayed > 0;
   if (aPlayed !== bPlayed) return aPlayed ? -1 : 1;
 
   if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-  // Tie on points: more kills ranks higher, then placement points.
-  if (b.totalKills !== a.totalKills) return b.totalKills - a.totalKills;
+  if (b.chickenDinners !== a.chickenDinners) return b.chickenDinners - a.chickenDinners;
+  if (b.totalKillPoints !== a.totalKillPoints) return b.totalKillPoints - a.totalKillPoints;
   if (b.totalPlacementPoints !== a.totalPlacementPoints) {
     return b.totalPlacementPoints - a.totalPlacementPoints;
   }
-  if (a.bestPlacement !== b.bestPlacement) return a.bestPlacement - b.bestPlacement;
-  return b.chickenDinners - a.chickenDinners;
+  if (a.lastMatchPlacement !== b.lastMatchPlacement) return a.lastMatchPlacement - b.lastMatchPlacement;
+  return 0;
+}
+
+/** Latest match in this set that has at least one recorded placement. */
+function lastScoredMatch(matches: Match[]): Match | undefined {
+  let latest: Match | undefined;
+  for (const match of matches) {
+    const scored = Object.values(match.results).some((result) => result?.placement != null);
+    if (!scored) continue;
+    if (
+      !latest ||
+      match.order > latest.order ||
+      (match.order === latest.order && match.id > latest.id)
+    ) {
+      latest = match;
+    }
+  }
+  return latest;
 }
 
 export function matchesForDay(matches: Match[], day: number): Match[] {
@@ -47,9 +78,11 @@ export function matchesThroughDay(matches: Match[], throughDay: number): Match[]
 }
 
 export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[] {
+  const latest = lastScoredMatch(matches);
   const rows: TeamStanding[] = teams.map((team) => {
     let totalPoints = 0;
     let totalKills = 0;
+    let totalKillPoints = 0;
     let totalPlacementPoints = 0;
     let matchesPlayed = 0;
     let bestPlacement = Number.POSITIVE_INFINITY;
@@ -60,23 +93,27 @@ export function computeStandings(teams: Team[], matches: Match[]): TeamStanding[
       if (!r || r.placement === null) continue;
       matchesPlayed++;
       const elim = effectiveTeamKills(team, r);
-      const { placementPts, total } = matchPointsForTeam(r.placement, elim);
+      const { placementPts, killPts, total } = matchPointsForTeam(r.placement, elim);
       totalPoints += total;
       totalKills += elim;
+      totalKillPoints += killPts;
       totalPlacementPoints += placementPts;
       if (r.placement < bestPlacement) bestPlacement = r.placement;
       if (r.placement === 1) chickenDinners++;
     }
 
+    const lastPlacement = latest?.results[team.id]?.placement;
     return {
       team,
       rank: 0,
       totalPoints,
       totalKills,
+      totalKillPoints,
       totalPlacementPoints,
       matchesPlayed,
-      bestPlacement: Number.isFinite(bestPlacement) ? bestPlacement : 999,
+      bestPlacement: Number.isFinite(bestPlacement) ? bestPlacement : NO_PLACEMENT,
       chickenDinners,
+      lastMatchPlacement: lastPlacement == null ? NO_PLACEMENT : lastPlacement,
     };
   });
 

@@ -39,7 +39,7 @@ const GOLD_TEXT: CSSProperties = {
   WebkitTextFillColor: "transparent",
 };
 
-const DEFAULT_HEADING = "Եզրափակիչ փուլ";
+const DEFAULT_HEADING = "Եզրափակիչ";
 
 function placeTone(rank: number): { background: string; rank: string } {
   if (rank === 1) return { background: "rgba(245, 184, 46, 0.16)", rank: "#FFC94A" };

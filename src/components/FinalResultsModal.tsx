@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { createPortal } from "react-dom";
-import type { Tournament } from "../types/tournament";
+import type { Team, Tournament } from "../types/tournament";
 import { computeStandings } from "../lib/standings";
 import {
   captureVisibleGraphic,
@@ -85,6 +85,7 @@ export function FinalResultsModal({
   tournament,
   stageId,
   semifinalField = false,
+  rosterField = null,
 }: {
   open: boolean;
   onClose: () => void;
@@ -93,6 +94,15 @@ export function FinalResultsModal({
   stageId?: string | null;
   /** One image of every squad in the semifinal groups. */
   semifinalField?: boolean;
+  /** Logo-grid roster poster (semifinal field, last chance, etc.). */
+  rosterField?: {
+    teams: Team[];
+    heading: string;
+    emptyText?: string;
+    fileTag: string;
+    label: string;
+    columnsPerRow?: number;
+  } | null;
 }) {
   const finalRef = useRef<HTMLDivElement>(null);
   const fastResRef = useRef<HTMLDivElement>(null);
@@ -110,7 +120,7 @@ export function FinalResultsModal({
         teams: tournament.teams,
         matches: tournament.matches,
         title: tournament.name,
-        heading: "Եզրափակիչ փուլ",
+        heading: "Եզրափակիչ",
         fileTag: "",
       };
     }
@@ -118,7 +128,7 @@ export function FinalResultsModal({
       teams: teamsInStage(tournament, stage),
       matches: matchesInStage(tournament, stage),
       title: tournament.name,
-      heading: stage.kind === "final" ? "Եզրափակիչ փուլ" : stage.name,
+      heading: stage.kind === "final" ? "Եզրափակիչ" : stage.name,
       fileTag: stage.name,
     };
   }, [tournament, stageId]);
@@ -138,10 +148,18 @@ export function FinalResultsModal({
     };
   }, [view.title, view.heading, view.matches, rows]);
 
-  const semifinalTeams = useMemo(() => {
+  const fieldPoster = useMemo(() => {
+    if (rosterField) return rosterField;
+    if (!semifinalField) return null;
     const field = semifieldStage(tournament);
-    return field ? teamsInStage(tournament, field) : [];
-  }, [tournament]);
+    return {
+      teams: field ? teamsInStage(tournament, field) : [],
+      heading: "Կիսաեզրափակիչ",
+      emptyText: "Կիսաեզրափակիչում թիմեր չկան",
+      fileTag: "semifinal",
+      label: "Semifinal",
+    };
+  }, [rosterField, semifinalField, tournament]);
 
   useLayoutEffect(() => {
     if (!open) return;
@@ -154,7 +172,7 @@ export function FinalResultsModal({
     const ro = new ResizeObserver(measure);
     for (const n of nodes) ro.observe(n);
     return () => ro.disconnect();
-  }, [open, tournament, stageId, semifinalField, finalStageProps, semifinalTeams]);
+  }, [open, tournament, stageId, fieldPoster, finalStageProps]);
 
   useEffect(() => {
     if (!open) return;
@@ -181,12 +199,14 @@ export function FinalResultsModal({
       setDownloading(variant);
       try {
         const exportH = measureGraphicExportHeight(el, FINAL_STAGE_EXPORT_MAX_H);
-        const exportW = semifinalField ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W;
+        const exportW = fieldPoster ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W;
         const blob = await captureVisibleGraphic(el, exportW, exportH);
         const stamp = new Date().toISOString().slice(0, 10);
         const base = slugifyFilename(tournament.name) || "standings";
-        const stageSlug = semifinalField ? "semifinal" : slugifyFilename(view.fileTag);
-        const suffix = semifinalField ? "teams" : variant === "final" ? "photo" : "fast_res";
+        const stageSlug = fieldPoster
+          ? slugifyFilename(fieldPoster.fileTag) || "teams"
+          : slugifyFilename(view.fileTag);
+        const suffix = fieldPoster ? "teams" : variant === "final" ? "photo" : "fast_res";
         const parts = [base, stageSlug, suffix, stamp].filter(Boolean);
         downloadPngBlob(blob, `${parts.join("_")}.jpg`);
       } catch (e) {
@@ -195,7 +215,7 @@ export function FinalResultsModal({
         setDownloading(null);
       }
     },
-    [semifinalField, tournament.name, view.fileTag],
+    [fieldPoster, tournament.name, view.fileTag],
   );
 
   if (!open) return null;
@@ -222,8 +242,8 @@ export function FinalResultsModal({
               Standings graphics
             </h2>
             <p className="mt-1 max-w-xl text-sm text-slate-400">
-              {semifinalField
-                ? `${tournament.name} · All semifinal teams`
+              {fieldPoster
+                ? `${tournament.name} · ${fieldPoster.label} teams`
                 : `${view.title} · Photo poster · FAST RES`}
             </p>
           </div>
@@ -234,9 +254,9 @@ export function FinalResultsModal({
               onClick={() => void downloadPng("final")}
               className="rounded-lg border border-[#c9a227]/50 bg-gradient-to-b from-[#3a3018] to-[#1a150a] px-4 py-2.5 text-sm font-semibold text-[#fff3cc] shadow-[0_0_24px_rgba(201,162,39,0.25)] hover:from-[#4a3f22] hover:to-[#221c0e] disabled:cursor-wait disabled:opacity-60"
             >
-              {downloading === "final" ? "Rendering…" : semifinalField ? "Download image" : "Download photo"}
+              {downloading === "final" ? "Rendering…" : fieldPoster ? "Download image" : "Download photo"}
             </button>
-            {!semifinalField && (
+            {!fieldPoster && (
               <button
                 type="button"
                 disabled={busy}
@@ -258,23 +278,26 @@ export function FinalResultsModal({
 
         <div className="flex flex-col" style={{ gap: PREVIEW_GAP_PX }}>
           <GraphicPreview
-            label={semifinalField ? "Semifinal" : "Photo poster"}
+            label={fieldPoster ? fieldPoster.label : "Photo poster"}
             contentHeight={finalHeight}
             previewInnerRef={finalPreviewInnerRef}
-            exportWidth={semifinalField ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W}
+            exportWidth={fieldPoster ? SEMIFINAL_FIELD_EXPORT_W : RESULTS_EXPORT_W}
           >
-            {semifinalField ? (
+            {fieldPoster ? (
               <SemifinalFieldGraphic
                 ref={finalRef}
                 tournamentName={tournament.name}
-                teams={semifinalTeams}
+                teams={fieldPoster.teams}
+                heading={fieldPoster.heading}
+                emptyText={fieldPoster.emptyText}
+                columnsPerRow={fieldPoster.columnsPerRow}
               />
             ) : (
               <FinalStageGraphic ref={finalRef} {...finalStageProps} />
             )}
           </GraphicPreview>
 
-          {!semifinalField && (
+          {!fieldPoster && (
             <GraphicPreview
               label="FAST RES"
               contentHeight={fastResHeight}

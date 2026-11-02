@@ -60,6 +60,8 @@ export type TournamentAction =
     }
   | { type: "removePlayer"; teamId: string; playerId: string }
   | { type: "removeTeam"; teamId: string }
+  | { type: "removeTeams"; teamIds: string[] }
+  | { type: "removeTeamsNotInFinal" }
   | { type: "reorderTeams"; teamIds: string[] }
   | { type: "reorderStageTeams"; stageId: string; teamIds: string[] }
   | { type: "addGroup"; name?: string }
@@ -71,6 +73,7 @@ export type TournamentAction =
   | { type: "moveTeamsToSemifinal"; teamIds: string[] }
   | { type: "assignSemifinalSide"; teamIds: string[]; slot: 0 | 1 }
   | { type: "splitSemifinalGroup"; stageId: string; finalistIds: string[] }
+  | { type: "promoteLastChanceToFinal"; teamIds: string[] }
   | { type: "removeFinalist"; teamId: string }
   | { type: "removeTeamFromStage"; stageId: string; teamId: string }
   | { type: "assignMatchesToStage"; stageId: string }
@@ -225,6 +228,45 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
         activeMatchId = matches[0]?.id ?? null;
       }
       return touch({ ...state, teams, matches, stages, activeMatchId });
+    }
+    case "removeTeams": {
+      const drop = new Set(action.teamIds);
+      if (drop.size === 0) return state;
+      const teams = state.teams.filter((t) => !drop.has(t.id));
+      if (teams.length === state.teams.length) return state;
+      const matches = state.matches.map((m) => {
+        const results = { ...m.results };
+        for (const id of drop) delete results[id];
+        return { ...m, results };
+      });
+      const stages = state.stages?.map((stage) => ({
+        ...stage,
+        teamIds: stage.teamIds.filter((id) => !drop.has(id)),
+      }));
+      let activeMatchId = state.activeMatchId;
+      if (activeMatchId && !matches.some((x) => x.id === activeMatchId)) {
+        activeMatchId = matches[0]?.id ?? null;
+      }
+      return touch({ ...state, teams, matches, stages, activeMatchId });
+    }
+    case "removeTeamsNotInFinal": {
+      const finals = state.stages?.find((s) => s.kind === "final");
+      if (!finals || finals.teamIds.length === 0) return state;
+      const keep = new Set(finals.teamIds);
+      const teams = state.teams.filter((t) => keep.has(t.id));
+      if (teams.length === state.teams.length) return state;
+      const matches = state.matches.map((m) => {
+        const results: typeof m.results = {};
+        for (const [id, result] of Object.entries(m.results)) {
+          if (keep.has(id)) results[id] = result;
+        }
+        return { ...m, results };
+      });
+      const stages = state.stages?.map((stage) => ({
+        ...stage,
+        teamIds: stage.teamIds.filter((id) => keep.has(id)),
+      }));
+      return touch({ ...state, teams, matches, stages });
     }
     case "reorderTeams": {
       const byId = new Map(state.teams.map((t) => [t.id, t] as const));
@@ -472,6 +514,29 @@ function reducer(state: Tournament, action: TournamentAction): Tournament {
           return { ...s, teamIds };
         }
         return s;
+      });
+      return touch({ ...state, stages });
+    }
+    case "promoteLastChanceToFinal": {
+      if (!state.stages) return state;
+      const last = state.stages.find((s) => s.kind === "lastchance");
+      if (!last) return state;
+      const incoming = action.teamIds.filter((id) => last.teamIds.includes(id));
+      if (incoming.length === 0) return state;
+      let stages = [...state.stages];
+      let finals = stages.find((s) => s.kind === "final");
+      if (!finals) {
+        finals = { id: newId("stage"), name: "Finals", kind: "final", teamIds: [] };
+        stages.push(finals);
+      }
+      const finalsId = finals.id;
+      stages = stages.map((s) => {
+        if (s.id !== finalsId) return s;
+        const teamIds = [...s.teamIds];
+        for (const id of incoming) {
+          if (!teamIds.includes(id)) teamIds.push(id);
+        }
+        return { ...s, teamIds };
       });
       return touch({ ...state, stages });
     }

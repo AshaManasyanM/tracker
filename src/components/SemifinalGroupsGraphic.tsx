@@ -29,10 +29,14 @@ const GOLD_TEXT: CSSProperties = {
   WebkitTextFillColor: "transparent",
 };
 
-const LOGO_PX = 84;
+const LOGO_PX = 164;
+const TILE_W = 248;
+const TILE_GAP = 14;
 
 export const SemifinalGroupsGraphic = forwardRef<HTMLDivElement, SemifinalGroupsGraphicProps>(
   function SemifinalGroupsGraphic({ tournamentName, columns, columnsPerGroup = 2 }, ref) {
+    const sideBySide = columns.length > 1;
+    const logoPx = LOGO_PX;
     return (
       <div
         ref={ref}
@@ -73,64 +77,52 @@ export const SemifinalGroupsGraphic = forwardRef<HTMLDivElement, SemifinalGroups
 
         <div
           className="relative z-10 flex flex-col"
-          style={{ padding: "18px 16px 16px", boxSizing: "border-box" }}
+          style={{ padding: "22px 28px 20px", boxSizing: "border-box" }}
         >
-          <p
+          <TournamentBanner name={tournamentName} />
+          <div
             style={{
-              margin: "0 0 14px",
-              textAlign: "center",
-              fontFamily: FONT_DISPLAY,
-              fontSize: 28,
-              fontWeight: 600,
-              color: "rgba(255, 255, 255, 0.9)",
+              display: "flex",
+              justifyContent: sideBySide ? "space-between" : "center",
+              alignItems: "flex-start",
+              gap: sideBySide ? 48 : 0,
             }}
           >
-            {tournamentName || "Մրցաշար"}
-          </p>
-          <div style={{ display: "flex", gap: 28, alignItems: "flex-start" }}>
-            {columns.map((column) => (
-              <div key={column.id} style={{ flex: "1 1 0", minWidth: 0 }}>
-                <h2
-                  style={{
-                    margin: "0 0 10px",
-                    textAlign: "center",
-                    fontFamily: FONT_DISPLAY,
-                    fontSize: 36,
-                    fontWeight: 700,
-                    lineHeight: 1.05,
-                    ...GOLD_TEXT,
-                  }}
-                >
-                  {column.name}
-                </h2>
-                {column.teams.length === 0 ? (
-                  <p
-                    style={{
-                      margin: 0,
-                      padding: "20px 0",
-                      textAlign: "center",
-                      fontFamily: FONT_DISPLAY,
-                      fontSize: 18,
-                      color: GOLD_DIM,
-                    }}
-                  >
-                    —
-                  </p>
-                ) : (
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: `repeat(${columnsPerGroup}, minmax(0, 1fr))`,
-                      gap: 8,
-                    }}
-                  >
-                    {column.teams.map((team) => (
-                      <TeamTile key={team.id} team={team} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+            {columns.map((column) => {
+              const packedWidth = columnsPerGroup * TILE_W + (columnsPerGroup - 1) * TILE_GAP;
+              return (
+                <div key={column.id} style={{ width: packedWidth }}>
+                  <GroupHeading name={column.name} />
+                  {column.teams.length === 0 ? (
+                    <p
+                      style={{
+                        margin: 0,
+                        padding: "20px 0",
+                        textAlign: "center",
+                        fontFamily: FONT_DISPLAY,
+                        fontSize: 18,
+                        color: GOLD_DIM,
+                      }}
+                    >
+                      —
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: `repeat(${columnsPerGroup}, ${TILE_W}px)`,
+                        columnGap: TILE_GAP,
+                        rowGap: 12,
+                      }}
+                    >
+                      {column.teams.map((team) => (
+                        <TeamTile key={team.id} team={team} logoPx={logoPx} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
@@ -140,26 +132,120 @@ export const SemifinalGroupsGraphic = forwardRef<HTMLDivElement, SemifinalGroups
 
 SemifinalGroupsGraphic.displayName = "SemifinalGroupsGraphic";
 
-function TeamTile({ team }: { team: Team }) {
+function tournamentNameLines(name: string): [string, string] {
+  const text = name.trim() || "Մրցաշար";
+  const budi = text.match(/^(budi\s+budi)\b\s*(.*)$/i);
+  if (budi) return [budi[1], budi[2] ?? ""];
+  const words = text.split(/\s+/);
+  if (words.length < 2) return [text, ""];
+  const mid = Math.ceil(words.length / 2);
+  return [words.slice(0, mid).join(" "), words.slice(mid).join(" ")];
+}
+
+function TournamentBanner({ name }: { name: string }) {
+  const [first, second] = tournamentNameLines(name);
+  return (
+    <div style={{ margin: "0 0 18px", textAlign: "center" }}>
+      <p
+        style={{
+          margin: 0,
+          fontFamily: FONT_DISPLAY,
+          fontSize: 56,
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          lineHeight: 1.05,
+          textTransform: "uppercase",
+          color: "#FFFFFF",
+        }}
+      >
+        {first}
+      </p>
+      {second ? (
+        <p
+          style={{
+            margin: "6px 0 0",
+            fontFamily: FONT_DISPLAY,
+            fontSize: 38,
+            fontWeight: 600,
+            letterSpacing: "0.08em",
+            lineHeight: 1.05,
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.92)",
+          }}
+        >
+          {second}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function GroupHeading({ name }: { name: string }) {
+  const rule = (
+    <span
+      aria-hidden
+      style={{
+        display: "block",
+        width: 56,
+        height: 3,
+        flex: "0 0 auto",
+        backgroundColor: GOLD,
+      }}
+    />
+  );
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        margin: "0 0 12px",
+        minHeight: 36,
+      }}
+    >
+      {rule}
+      <h2
+        style={{
+          margin: 0,
+          fontFamily: FONT_DISPLAY,
+          fontSize: 26,
+          fontWeight: 700,
+          letterSpacing: "0.08em",
+          lineHeight: 1,
+          textAlign: "center",
+          textTransform: "uppercase",
+          ...GOLD_TEXT,
+        }}
+      >
+        {name}
+      </h2>
+      {rule}
+    </div>
+  );
+}
+
+function TeamTile({ team, logoPx }: { team: Team; logoPx: number }) {
   const initial = team.name.trim().slice(0, 1).toUpperCase() || "?";
   return (
     <div
       style={{
+        width: "100%",
         minWidth: 0,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 6,
-        padding: "10px 6px 8px",
-        backgroundColor: "rgba(8, 6, 4, 0.38)",
-        border: "1px solid rgba(255, 255, 255, 0.28)",
+        gap: 8,
+        padding: "14px 10px 12px",
+        backgroundColor: "rgba(8, 6, 4, 0.22)",
+        border: "1px solid rgba(245, 184, 46, 0.45)",
         boxSizing: "border-box",
       }}
     >
       <div
         style={{
-          width: LOGO_PX,
-          height: LOGO_PX,
+          width: logoPx,
+          height: logoPx,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -169,9 +255,9 @@ function TeamTile({ team }: { team: Team }) {
           <img
             src={team.logoDataUrl}
             alt=""
-            width={LOGO_PX}
-            height={LOGO_PX}
-            style={{ display: "block", width: LOGO_PX, height: LOGO_PX, objectFit: "contain" }}
+            width={logoPx}
+            height={logoPx}
+            style={{ display: "block", width: logoPx, height: logoPx, objectFit: "contain" }}
           />
         ) : (
           <span
@@ -190,14 +276,15 @@ function TeamTile({ team }: { team: Team }) {
       <span
         style={{
           width: "100%",
-          maxHeight: 34,
+          maxHeight: 64,
           overflow: "hidden",
           fontFamily: FONT_BOARD,
-          fontSize: 15,
+          fontSize: 26,
           fontWeight: 700,
-          letterSpacing: "0.03em",
+          letterSpacing: "0.02em",
           color: "#FFFFFF",
           lineHeight: 1.15,
+          textShadow: "0 2px 6px rgba(0, 0, 0, 0.9)",
           textAlign: "center",
           textTransform: "uppercase",
         }}

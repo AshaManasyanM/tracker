@@ -6,6 +6,9 @@ export type SemifinalFieldGraphicProps = {
   tournamentName: string;
   teams: Team[];
   heading?: string;
+  emptyText?: string;
+  /** How many squad tiles sit in a full row. The last incomplete row is centered. */
+  columnsPerRow?: number;
 };
 
 const FONT_DISPLAY = "'Noto Sans Armenian', 'Oswald', system-ui, sans-serif";
@@ -23,10 +26,23 @@ const GOLD_TEXT: CSSProperties = {
 };
 
 const DEFAULT_HEADING = "Կիսաեզրափակիչ";
+const DEFAULT_EMPTY = "Կիսաեզրափակիչում թիմեր չկան";
 
 export const SemifinalFieldGraphic = forwardRef<HTMLDivElement, SemifinalFieldGraphicProps>(
-  function SemifinalFieldGraphic({ tournamentName, teams, heading = DEFAULT_HEADING }, ref) {
+  function SemifinalFieldGraphic(
+    {
+      tournamentName,
+      teams,
+      heading = DEFAULT_HEADING,
+      emptyText = DEFAULT_EMPTY,
+      columnsPerRow = 8,
+    },
+    ref,
+  ) {
     const logoPx = 96;
+    const cols = Math.max(1, Math.floor(columnsPerRow));
+    const columnGap = 24;
+    const tileWidth = `calc((100% - ${(cols - 1) * columnGap}px) / ${cols})`;
 
     return (
       <div
@@ -107,15 +123,17 @@ export const SemifinalFieldGraphic = forwardRef<HTMLDivElement, SemifinalFieldGr
                 color: GOLD_DIM,
               }}
             >
-              Կիսաեզրափակիչում թիմեր չկան
+              {emptyText}
             </p>
           ) : (
             <div
               style={{
                 marginTop: 8,
-                display: "grid",
-                gridTemplateColumns: "repeat(8, minmax(0, 1fr))",
-                gap: 8,
+                display: "flex",
+                flexWrap: "wrap",
+                justifyContent: "center",
+                columnGap,
+                rowGap: 8,
               }}
             >
               {teams.map((team) => {
@@ -124,15 +142,16 @@ export const SemifinalFieldGraphic = forwardRef<HTMLDivElement, SemifinalFieldGr
                   <div
                     key={team.id}
                     style={{
+                      width: tileWidth,
                       minWidth: 0,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
                       justifyContent: "flex-end",
                       gap: 6,
-                      minHeight: logoPx + 52,
+                      minHeight: logoPx + 64,
                       padding: "10px 6px 8px",
-                      backgroundColor: "rgba(8, 6, 4, 0.38)",
+                      backgroundColor: "rgba(8, 6, 4, 0.2)",
                       border: "1px solid rgba(255, 255, 255, 0.28)",
                       boxSizing: "border-box",
                     }}
@@ -176,14 +195,15 @@ export const SemifinalFieldGraphic = forwardRef<HTMLDivElement, SemifinalFieldGr
                     <span
                       style={{
                         width: "100%",
-                        maxHeight: 36,
+                        maxHeight: 48,
                         overflow: "hidden",
                         fontFamily: FONT_BOARD,
-                        fontSize: 16,
+                        fontSize: 22,
                         fontWeight: 700,
-                        letterSpacing: "0.04em",
+                        letterSpacing: "0.03em",
                         color: "#FFFFFF",
                         lineHeight: 1.15,
+                        textShadow: "0 2px 6px rgba(0, 0, 0, 0.9)",
                         textAlign: "center",
                         textTransform: "uppercase",
                       }}

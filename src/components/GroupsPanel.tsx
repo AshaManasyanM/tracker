@@ -31,12 +31,35 @@ export function GroupsPanel() {
   const [groupName, setGroupName] = useState("");
   const [exportStageId, setExportStageId] = useState<string | null>(null);
   const [exportSemifinalField, setExportSemifinalField] = useState(false);
+  const [exportLastChanceField, setExportLastChanceField] = useState(false);
+  const [exportFinalsField, setExportFinalsField] = useState(false);
   const groups = groupStages(tournament);
   const semis = semifinalStages(tournament);
   const lastChance = lastChanceStage(tournament);
   const finals = finalsStage(tournament);
   const waiting = unassignedTeams(tournament);
   const looseMatches = tournament.matches.filter((m) => !m.stageId);
+  const lastChanceTeams = lastChance ? teamsInStage(tournament, lastChance) : [];
+  const finalsTeams = finals ? teamsInStage(tournament, finals) : [];
+  const rosterField = exportLastChanceField && lastChance
+    ? {
+        teams: lastChanceTeams,
+        heading: lastChance.name || "Last chance",
+        emptyText: "No teams in last chance",
+        fileTag: lastChance.name || "last_chance",
+        label: "Last chance",
+        columnsPerRow: 5,
+      }
+    : exportFinalsField && finals
+      ? {
+          teams: finalsTeams,
+          heading: "Եզրափակիչ",
+          emptyText: "Եզրափակիչում թիմեր չկան",
+          fileTag: finals.name || "finals",
+          label: "Finals",
+          columnsPerRow: 5,
+        }
+      : null;
 
   return (
     <div className="space-y-4">
@@ -47,7 +70,7 @@ export function GroupsPanel() {
           squads and send them to the semifinal image. Then choose which of those squads play
           Semifinal A and which play Semifinal B. From each of those groups, check the{" "}
           {SEMIFINAL_ADVANCE_COUNT} who go to the final. Everyone left unchecked plays last chance.
-          Every new stage starts at zero.
+          From last chance you can still send squads into the final. Every new stage starts at zero.
         </p>
         <form
           className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-end"
@@ -84,8 +107,25 @@ export function GroupsPanel() {
         <section className="rounded-xl border border-line bg-canvas-overlay p-4">
           <h3 className="text-sm font-semibold text-slate-100">Not in a group</h3>
           <p className="mt-1 text-xs text-slate-500">
-            {waiting.length} squad{waiting.length === 1 ? "" : "s"} still need a group.
+            These squads were taken out of a group, or were never placed in one. They are still in
+            the tournament until you delete them.
           </p>
+          <button
+            type="button"
+            className="mt-3 rounded-md border border-danger/40 px-3 py-1.5 text-sm text-danger hover:bg-danger/10"
+            onClick={() => {
+              if (
+                !confirm(
+                  `Delete ${waiting.length} squad${waiting.length === 1 ? "" : "s"} that are not in a group? Their scores are removed from the saved tournament.`,
+                )
+              ) {
+                return;
+              }
+              dispatch({ type: "removeTeams", teamIds: waiting.map((team) => team.id) });
+            }}
+          >
+            Delete all squads not in a group
+          </button>
           <ul className="mt-3 divide-y divide-line rounded-lg border border-line">
             {waiting.map((team) => (
               <li key={team.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
@@ -144,28 +184,45 @@ export function GroupsPanel() {
       ))}
 
       {lastChance && (
+        <LastChanceTeamsImage onDownload={() => setExportLastChanceField(true)} />
+      )}
+
+      {lastChance && (
         <StageRosterCard
           stage={lastChance}
           kicker="Last chance"
           borderClass="border-orange-400/35"
           kickerClass="text-orange-200"
           emptyText="Teams that miss the top 6 in a semifinal group land here."
-          note="Last chance points start at zero. Enter those lobbies from the Live tab while Last chance is selected."
+          note="Last chance points start at zero. Check squads here to send them into the final. Enter last-chance lobbies from the Live tab while Last chance is selected."
+          promoteToFinal
           onExport={() => setExportStageId(lastChance.id)}
         />
+      )}
+
+      {finals && (
+        <FinalsTeamsImage onDownload={() => setExportFinalsField(true)} />
       )}
 
       {finals && <FinalsCard stage={finals} onExport={() => setExportStageId(finals.id)} />}
 
       <FinalResultsModal
-        open={exportStageId != null || exportSemifinalField}
+        open={
+          exportStageId != null ||
+          exportSemifinalField ||
+          exportLastChanceField ||
+          exportFinalsField
+        }
         onClose={() => {
           setExportStageId(null);
           setExportSemifinalField(false);
+          setExportLastChanceField(false);
+          setExportFinalsField(false);
         }}
         tournament={tournament}
         stageId={exportStageId}
         semifinalField={exportSemifinalField}
+        rosterField={rosterField}
       />
     </div>
   );
@@ -275,6 +332,124 @@ function SemifinalLiveImage({ onDownload }: { onDownload: () => void }) {
   );
 }
 
+function LastChanceTeamsImage({ onDownload }: { onDownload: () => void }) {
+  const { tournament } = useTournament();
+  const graphicRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(420);
+  const stage = lastChanceStage(tournament);
+  const teams = stage ? teamsInStage(tournament, stage) : [];
+  const scale = 0.48;
+  const previewW = SEMIFINAL_FIELD_EXPORT_W * scale;
+
+  useLayoutEffect(() => {
+    const el = graphicRef.current;
+    if (!el) return;
+    const measure = () => setHeight(Math.ceil(el.offsetHeight));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [teams.length, stage?.name]);
+
+  if (!stage) return null;
+
+  return (
+    <section className="rounded-xl border border-orange-400/30 bg-canvas-overlay p-4 shadow-panel">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">Last chance</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Same logo poster as the semifinal. Squad list, standings, and scores stay below.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-md border border-orange-400/40 bg-orange-400/10 px-4 py-2 text-sm font-medium text-orange-100 hover:bg-orange-400/15"
+          onClick={onDownload}
+        >
+          Download image
+        </button>
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black">
+        <div className="mx-auto" style={{ width: previewW, height: height * scale }}>
+          <div
+            className="origin-top-left"
+            style={{ width: SEMIFINAL_FIELD_EXPORT_W, transform: `scale(${scale})` }}
+          >
+            <SemifinalFieldGraphic
+              ref={graphicRef}
+              tournamentName={tournament.name}
+              teams={teams}
+              heading={stage.name || "Last chance"}
+              emptyText="No teams in last chance"
+              columnsPerRow={5}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FinalsTeamsImage({ onDownload }: { onDownload: () => void }) {
+  const { tournament } = useTournament();
+  const graphicRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState(420);
+  const stage = finalsStage(tournament);
+  const teams = stage ? teamsInStage(tournament, stage) : [];
+  const scale = 0.48;
+  const previewW = SEMIFINAL_FIELD_EXPORT_W * scale;
+
+  useLayoutEffect(() => {
+    const el = graphicRef.current;
+    if (!el) return;
+    const measure = () => setHeight(Math.ceil(el.offsetHeight));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [teams.length, stage?.name]);
+
+  if (!stage) return null;
+
+  return (
+    <section className="rounded-xl border border-[#c9a227]/30 bg-canvas-overlay p-4 shadow-panel">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-slate-100">Finals</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Logo poster like the semifinal field. Squad list, standings, and scores stay below.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="rounded-md border border-[#c9a227]/40 bg-[#2a2312]/80 px-4 py-2 text-sm font-medium text-[#f5e6b8] hover:bg-[#3a3018]"
+          onClick={onDownload}
+        >
+          Download image
+        </button>
+      </div>
+      <div className="mt-4 overflow-x-auto rounded-lg border border-white/10 bg-black">
+        <div className="mx-auto" style={{ width: previewW, height: height * scale }}>
+          <div
+            className="origin-top-left"
+            style={{ width: SEMIFINAL_FIELD_EXPORT_W, transform: `scale(${scale})` }}
+          >
+            <SemifinalFieldGraphic
+              ref={graphicRef}
+              tournamentName={tournament.name}
+              teams={teams}
+              heading="Եզրափակիչ"
+              emptyText="Եզրափակիչում թիմեր չկան"
+              columnsPerRow={5}
+            />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function SemifinalGroupsImages() {
   const { tournament } = useTournament();
   const bothRef = useRef<HTMLDivElement>(null);
@@ -293,7 +468,7 @@ function SemifinalGroupsImages() {
     columns[1] ?? { id: "semifinal-b", name: "Semifinal B", teams: [] },
   ];
   const hasTeams = named.some((column) => column.teams.length > 0);
-  const scale = 0.48;
+  const scale = 0.82;
   const previewW = SEMIFINAL_FIELD_EXPORT_W * scale;
 
   useLayoutEffect(() => {
@@ -533,11 +708,14 @@ function GroupCard({ stage, onExport }: { stage: TournamentStage; onExport: () =
                 <button
                   type="button"
                   className="shrink-0 text-xs text-slate-500 hover:text-danger"
-                  onClick={() =>
-                    dispatch({ type: "assignTeamToGroup", teamId: team.id, stageId: null })
-                  }
+                  onClick={() => {
+                    if (!confirm(`Delete ${team.name} from the tournament? Their scores are removed too.`)) {
+                      return;
+                    }
+                    dispatch({ type: "removeTeam", teamId: team.id });
+                  }}
                 >
-                  Remove
+                  Delete
                 </button>
               </li>
             ))}
@@ -571,6 +749,7 @@ function StageRosterCard({
   emptyText,
   note,
   split,
+  promoteToFinal,
   onExport,
 }: {
   stage: TournamentStage;
@@ -580,6 +759,7 @@ function StageRosterCard({
   emptyText: string;
   note: string;
   split?: boolean;
+  promoteToFinal?: boolean;
   onExport: () => void;
 }) {
   const { tournament, dispatch } = useTournament();
@@ -587,6 +767,9 @@ function StageRosterCard({
   const [picked, setPicked] = useState<string[]>([]);
   const teams = teamsInStage(tournament, stage);
   const matches = matchesInStage(tournament, stage);
+  const finals = finalsStage(tournament);
+  const inFinal = new Set(finals?.teamIds ?? []);
+  const canPick = Boolean(split || promoteToFinal);
 
   return (
     <section className={`rounded-xl border bg-canvas-overlay p-4 shadow-panel ${borderClass}`}>
@@ -626,10 +809,11 @@ function StageRosterCard({
             {teams.length === 0 && <li className="px-3 py-4 text-sm text-slate-500">{emptyText}</li>}
             {teams.map((team) => (
               <li key={team.id} className="flex items-center gap-2 px-3 py-2">
-                {split && (
+                {canPick && (
                   <input
                     type="checkbox"
                     checked={picked.includes(team.id)}
+                    disabled={promoteToFinal && inFinal.has(team.id)}
                     onChange={() =>
                       setPicked((prev) =>
                         prev.includes(team.id) ? prev.filter((id) => id !== team.id) : [...prev, team.id],
@@ -639,6 +823,11 @@ function StageRosterCard({
                   />
                 )}
                 <span className="min-w-0 flex-1 truncate text-sm text-slate-100">{team.name}</span>
+                {promoteToFinal && inFinal.has(team.id) && (
+                  <span className="shrink-0 rounded-full border border-[#c9a227]/40 px-2 py-0.5 text-[10px] uppercase tracking-wide text-[#f5e6b8]">
+                    Finals
+                  </span>
+                )}
                 <button
                   type="button"
                   className="shrink-0 text-xs text-slate-500 hover:text-danger"
@@ -668,6 +857,19 @@ function StageRosterCard({
               Selected to the final, the rest to last chance
             </button>
           )}
+          {promoteToFinal && (
+            <button
+              type="button"
+              disabled={picked.length === 0}
+              className="mt-2 rounded-md border border-[#c9a227]/40 bg-[#2a2312]/80 px-3 py-1.5 text-sm font-medium text-[#f5e6b8] hover:bg-[#3a3018] disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={() => {
+                dispatch({ type: "promoteLastChanceToFinal", teamIds: picked });
+                setPicked([]);
+              }}
+            >
+              Send selected to the final
+            </button>
+          )}
         </div>
         <Leaderboard teams={teams} matches={matches} title={`${stage.name} results`} />
       </div>
@@ -680,6 +882,7 @@ function FinalsCard({ stage, onExport }: { stage: TournamentStage; onExport: () 
   const [draft, setDraft] = useState(stage.name);
   const teams = teamsInStage(tournament, stage);
   const matches = matchesInStage(tournament, stage);
+  const outside = tournament.teams.filter((team) => !stage.teamIds.includes(team.id));
 
   return (
     <section className="rounded-xl border border-[#c9a227]/35 bg-canvas-overlay p-4 shadow-panel">
@@ -703,13 +906,32 @@ function FinalsCard({ stage, onExport }: { stage: TournamentStage; onExport: () 
             />
           </label>
         </div>
-        <button
-          type="button"
-          className="rounded-md border border-[#c9a227]/40 px-3 py-1.5 text-sm text-[#f5e6b8] hover:bg-[#2a2312]"
-          onClick={onExport}
-        >
-          Export final standings
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            disabled={outside.length === 0 || stage.teamIds.length === 0}
+            className="rounded-md border border-danger/40 px-3 py-1.5 text-sm text-danger hover:bg-danger/10 disabled:cursor-not-allowed disabled:opacity-40"
+            onClick={() => {
+              if (
+                !confirm(
+                  `Delete ${outside.length} squad${outside.length === 1 ? "" : "s"} that are not in the final? They are removed from every group and from the saved tournament.`,
+                )
+              ) {
+                return;
+              }
+              dispatch({ type: "removeTeamsNotInFinal" });
+            }}
+          >
+            Delete squads not in the final
+          </button>
+          <button
+            type="button"
+            className="rounded-md border border-[#c9a227]/40 px-3 py-1.5 text-sm text-[#f5e6b8] hover:bg-[#2a2312]"
+            onClick={onExport}
+          >
+            Export final standings
+          </button>
+        </div>
       </div>
       <p className="mt-3 text-xs text-slate-500">
         Final points start at zero. Enter final lobbies from the Live tab while Finals is selected.
